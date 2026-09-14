@@ -37,6 +37,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
+  "netCDF4>=1.6",
+]
+l2r = [
+  "netCDF4>=1.6",
 ]
 raster = [
   "rasterio>=1.3",
@@ -49,8 +53,8 @@ l2w = [
 navimap-sat = "navimap_satellites.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/NAVIGUIDE-for-Berry-Mappemonde/navimap-satellites"
-Repository = "https://github.com/NAVIGUIDE-for-Berry-Mappemonde/navimap-satellites"
+Homepage = "https://github.com/NAVIGUIDE-for-Berry-Mappemonde/NaviMap-Satellites"
+Repository = "https://github.com/NAVIGUIDE-for-Berry-Mappemonde/NaviMap-Satellites"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -2,17 +2,27 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import httpx
 
-from navimap_satellites.acquire.auth import CdseAuthError, CdseToken, fetch_cdse_session, refresh_cdse_token
-from navimap_satellites.aoi import AOI
-from navimap_satellites.acquire.odata import ODataProduct, resolve_l1c_product
+from navimap_satellites.acquire.auth import (
+    CdseAuthError,
+    CdseToken,
+    fetch_cdse_session,
+    fetch_cdse_token,
+    refresh_cdse_token,
+)
+from navimap_satellites.acquire.l1c import product_name, require_l1c
+from navimap_satellites.acquire.odata import ODataProduct, lookup_product, resolve_l1c_product
 from navimap_satellites.acquire.stac import Scene, pick_best_scene
+from navimap_satellites.aoi import AOI
 
 DEFAULT_RETRIES = 4
 DEFAULT_TIMEOUT_S = 120.0
@@ -20,6 +30,18 @@ DEFAULT_TIMEOUT_S = 120.0
 
 class DownloadError(RuntimeError):
     """Échec de téléchargement après retries."""
+
+
+def default_pilot_dir() -> Path:
+    return Path.home() / "Desktop" / "sentinel-pilot"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def download_product(
@@ -105,6 +127,50 @@ def download_best_l1c(
         retries=retries,
         sleep=sleep,
     )
+
+
+def download_l1c_scene(
+    scene_id: str,
+    dest_dir: Path | None = None,
+    *,
+    dry_run: bool = False,
+    token: str | None = None,
+    client: httpx.Client | None = None,
+) -> dict[str, Any]:
+    """Télécharge un zip L1C. Refuse MSIL2A. Saute si le zip est déjà là."""
+    require_l1c(scene_id)
+    out_dir = Path(dest_dir) if dest_dir else default_pilot_dir()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    product = lookup_product(product_name(scene_id), client=client)
+    dest = out_dir / str(product.name).replace(".SAFE", ".zip")
+    rec: dict[str, Any] = {
+        "scene_id": scene_id,
+        "product_id": product.id,
+        "name": product.name,
+        "bytes": product.content_length,
+        "path": str(dest),
+        "skipped_existing": False,
+        "dry_run": dry_run,
+    }
+    if dry_run:
+        return rec
+    if dest.exists() and dest.stat().st_size > 0:
+        rec["skipped_existing"] = True
+    else:
+        session = CdseToken(access_token=token or fetch_cdse_token())
+        own = client is None
+        http = client or httpx.Client(timeout=DEFAULT_TIMEOUT_S, follow_redirects=True)
+        try:
+            _download_zip(product, dest, session, http, retries=DEFAULT_RETRIES, sleep=time.sleep)
+        finally:
+            if own:
+                http.close()
+    rec["sha256"] = sha256_file(dest)
+    rec["bytes_on_disk"] = dest.stat().st_size
+    receipt = out_dir / "download_receipt.json"
+    receipt.write_text(json.dumps({"scenes": [rec]}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    rec["receipt"] = str(receipt)
+    return rec
 
 
 def extract_safe_zip(zip_path: str | Path, dest_dir: str | Path, product_name: str) -> Path:

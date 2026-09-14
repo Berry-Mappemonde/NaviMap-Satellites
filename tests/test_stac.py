@@ -33,7 +33,7 @@ SAMPLE = {
 def test_search_parses_stac(monkeypatch):
     def handler(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content)
-        assert body["collections"] == ["sentinel-2-l2a"]
+        assert body["collections"] == ["sentinel-2-l1c"]
         assert body["bbox"] == [8.7, 42.52, 8.82, 42.6]
         return httpx.Response(200, json=SAMPLE)
 

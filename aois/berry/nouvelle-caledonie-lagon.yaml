@@ -12,6 +12,6 @@ date_from: "2025-01-01"
 date_to: "2026-12-31"
 max_cloud_cover: 20
 collections:
-  - sentinel-2-l2a
+  - sentinel-2-l1c
 notes: >
   Plats récifaux et lagon. Formes larges seulement — pas un levé d'écueils.

@@ -16,6 +16,7 @@ def test_load_berry_campaign():
     assert ids[0] == "calvi"
     assert "nouvelle-caledonie-lagon" in ids
     assert all(a.phase == "expedition" for a in campaign.stages)
+    assert all(a.collections == ("sentinel-2-l1c",) for a in campaign.stages)
 
 
 def test_filter_phase_empty():

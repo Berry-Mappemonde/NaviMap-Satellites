@@ -11,6 +11,8 @@ from dataclasses import dataclass
 
 import httpx
 
+from navimap_satellites.acquire.envfile import load_cdse_env
+
 TOKEN_URL = (
     "https://identity.dataspace.copernicus.eu/auth/realms/CDSE"
     "/protocol/openid-connect/token"
@@ -48,6 +50,7 @@ def fetch_cdse_session(
     client: httpx.Client | None = None,
 ) -> CdseToken:
     """Comme fetch_cdse_token, mais conserve le refresh_token pour les gros téléchargements."""
+    load_cdse_env()
     existing = os.environ.get("CDSE_ACCESS_TOKEN", "").strip()
     if existing:
         return CdseToken(access_token=existing)

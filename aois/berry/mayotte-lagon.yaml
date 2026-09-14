@@ -12,7 +12,7 @@ date_from: "2025-01-01"
 date_to: "2026-12-31"
 max_cloud_cover: 20
 collections:
-  - sentinel-2-l2a
+  - sentinel-2-l1c
 notes: >
   Fenêtre sur le lagon, pas toute l'île. Les têtes de corail isolées
   restent invisibles sous un pixel de 10 m.

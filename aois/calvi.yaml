@@ -13,7 +13,7 @@ date_from: "2025-06-01"
 date_to: "2026-09-30"
 max_cloud_cover: 15
 collections:
-  - sentinel-2-l2a
+  - sentinel-2-l1c
 notes: >
   Eau plutôt claire, fond souvent visible près du rivage.
   Bon premier terrain d'essai. Un granule Sentinel-2 couvre bien plus

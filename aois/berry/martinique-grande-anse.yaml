@@ -12,7 +12,7 @@ date_from: "2025-01-01"
 date_to: "2026-12-31"
 max_cloud_cover: 15
 collections:
-  - sentinel-2-l2a
+  - sentinel-2-l1c
 notes: >
   Petite fenêtre autour d'une anse du sud-ouest. Un granule Sentinel-2
   est bien plus large : ACOLITE ne gardera que cette bbox.

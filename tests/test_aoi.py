@@ -12,6 +12,14 @@ def test_load_calvi():
     assert aoi.id == "calvi"
     assert aoi.bbox[0] < aoi.bbox[2]
     assert aoi.water_type == "case-1-ish"
+    assert aoi.collections == ("sentinel-2-l1c",)
+
+
+def test_load_la_rochelle():
+    aoi = load_aoi(ROOT / "aois" / "la-rochelle.yaml")
+    assert aoi.id == "la-rochelle"
+    assert aoi.bbox == (-1.666, 45.655, -0.668, 46.653)
+    assert aoi.collections == ("sentinel-2-l1c",)
 
 
 def test_invalid_bbox():
