@@ -105,10 +105,10 @@ def worldview_url(bbox: BBox, *, date: str | None = None, layer_id: str = "viirs
     spec = gibs_layer(layer_id)
     day = date or "default"
     time = f"{day}-T00:00:00Z" if day != "default" else "default"
-    return (
-        f"{WORLDVIEW_URL}?v={west - pad_x},{south - pad_y},{east + pad_x},{north + pad_y}"
-        f"&t={time}&l={spec.layer},Coastlines_15m"
+    view = (
+        f"{west - pad_x:.4f},{south - pad_y:.4f},{east + pad_x:.4f},{north + pad_y:.4f}"
     )
+    return f"{WORLDVIEW_URL}?v={view}&t={time}&l={spec.layer},Coastlines_15m"
 
 
 def write_preview_html(

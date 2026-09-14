@@ -26,8 +26,8 @@ def test_blue_marble_has_no_calendar_date():
 def test_worldview_contains_bbox():
     url = worldview_url((8.70, 42.52, 8.82, 42.60), date="2025-08-15")
     assert "worldview.earthdata.nasa.gov" in url
-    assert "8.7" in url
-    assert "42.5" in url
+    assert "8.65" in url
+    assert "42.47" in url
 
 
 def test_preview_html_embeds_disclaimer(tmp_path: Path):
