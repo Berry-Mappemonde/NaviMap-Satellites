@@ -210,7 +210,13 @@ def _cmd_schema() -> int:
 
 def _cmd_auth(args: argparse.Namespace) -> int:
     from navimap_satellites.acquire.auth import CdseAuthError, fetch_cdse_token
+    from navimap_satellites.acquire.envfile import load_cdse_env
 
+    loaded = load_cdse_env()
+    if loaded:
+        print("Fichier(s) .env lu(s) (le mot de passe n'est pas affiché) :")
+        for path in loaded:
+            print(f"  {path}")
     try:
         token = fetch_cdse_token(args.username, args.password)
     except CdseAuthError as exc:
