@@ -1,0 +1,17 @@
+# Pilote v0.1 — eaux méditerranéennes relativement claires.
+# Ne convient pas à la navigation.
+
+id: calvi
+name: Baie de Calvi (Corse)
+purpose: pilote eaux claires — recherche Sentinel-2, plus tard trait de côte et SDB
+water_type: case-1-ish
+bbox: [8.70, 42.52, 8.82, 42.60]  # west, south, east, north
+date_from: "2025-06-01"
+date_to: "2025-09-30"
+max_cloud_cover: 15
+collections:
+  - sentinel-2-l2a
+notes: >
+  Eau plutôt claire, fond souvent visible près du rivage.
+  Bon premier terrain d'essai. Un granule Sentinel-2 couvre bien plus
+  large que cette bbox : on ne téléchargera plus tard que la fenêtre utile.

@@ -1,0 +1,16 @@
+# Contre-exemple — eaux optiquement complexes (Cas 2).
+# La bathymétrie satellitaire optique y est souvent inopérante.
+
+id: etang-de-thau
+name: Étang de Thau (Hérault)
+purpose: documenter les limites (turbidité, Cas 2) — pas une cible SDB
+water_type: case-2
+bbox: [3.58, 43.36, 3.72, 43.48]
+date_from: "2025-06-01"
+date_to: "2025-09-30"
+max_cloud_cover: 20
+collections:
+  - sentinel-2-l2a
+notes: >
+  Lagune turbide, matières en suspension et CDOM.
+  Utile pour tester les masques terre/eau, pas pour inverser une profondeur.
