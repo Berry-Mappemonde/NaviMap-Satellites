@@ -37,3 +37,6 @@ def test_demo_writes_geojson(tmp_path: Path):
     assert sound["features"]
     assert sound["features"][0]["properties"]["seamark:type"] == "depth"
     assert sound["features"][0]["properties"]["depth"] > 0
+    shallow = json.loads(paths["shallow"].read_text(encoding="utf-8"))
+    assert shallow["metadata"]["not_for_navigation"] is True
+    assert shallow["metadata"]["kind"] == "shallow"

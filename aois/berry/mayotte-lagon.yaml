@@ -1,0 +1,18 @@
+# Lagon, fond souvent visible. Ne convient pas à la navigation.
+
+id: mayotte-lagon
+name: Lagon nord-est (Mayotte)
+purpose: escale ultramarine candidate — lagon, plats récifaux larges
+water_type: case-1-ish
+campaign: berry-mappemonde
+phase: expedition
+order: 30
+bbox: [45.22, -12.81, 45.32, -12.74]
+date_from: "2025-01-01"
+date_to: "2026-12-31"
+max_cloud_cover: 20
+collections:
+  - sentinel-2-l2a
+notes: >
+  Fenêtre sur le lagon, pas toute l'île. Les têtes de corail isolées
+  restent invisibles sous un pixel de 10 m.

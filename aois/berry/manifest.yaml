@@ -1,0 +1,29 @@
+# Fenêtres côtières candidates pour Berry-Mappemonde.
+# Ce n'est PAS l'itinéraire officiel, PAS une carte marine.
+# Une baie à la fois. Ne convient pas à la navigation.
+
+id: berry-mappemonde
+name: Fenêtres côtières Berry-Mappemonde
+notes: >
+  Première vague (phase expedition) : baies à eaux plutôt claires, utiles
+  pour tester Sentinel-2. Les 13 territoires ultramarins ne sont pas tous
+  ici — Guyane, SPM, TAAF : souvent trop turbides, trop nuageux ou trop
+  profonds pour une bathymétrie optique. Phase route puis world : à ajouter
+  plus tard, toujours une fenêtre, jamais le globe d'un coup.
+
+stages:
+  - path: ../calvi.yaml
+    phase: expedition
+    order: 10
+  - path: martinique-grande-anse.yaml
+    phase: expedition
+    order: 20
+  - path: mayotte-lagon.yaml
+    phase: expedition
+    order: 30
+  - path: nouvelle-caledonie-lagon.yaml
+    phase: expedition
+    order: 40
+  - path: polynesie-moorea.yaml
+    phase: expedition
+    order: 50

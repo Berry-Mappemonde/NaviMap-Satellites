@@ -13,7 +13,7 @@ La **recherche** (`navimap-sat search`) parle au catalogue STAC public :
 
 `https://stac.dataspace.copernicus.eu/v1/search`
 
-Elle marche **sans** mot de passe. Le mot de passe sert au **téléchargement** (pas encore branché en v0.1).
+Elle marche **sans** mot de passe. Le mot de passe sert au **téléchargement** (`navimap-sat download` / `process`).
 
 Créer un compte : bouton Register sur le site Data Space. Ce n’est pas le même login que Marine.
 

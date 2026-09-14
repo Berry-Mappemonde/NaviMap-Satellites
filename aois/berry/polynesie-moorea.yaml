@@ -1,0 +1,18 @@
+# Lagon polynésien. Ne convient pas à la navigation.
+
+id: polynesie-moorea
+name: Lagon nord de Moorea (Polynésie française)
+purpose: escale ultramarine candidate — atoll / lagon clair
+water_type: case-1-ish
+campaign: berry-mappemonde
+phase: expedition
+order: 50
+bbox: [-149.90, -17.52, -149.78, -17.46]
+date_from: "2025-01-01"
+date_to: "2026-12-31"
+max_cloud_cover: 20
+collections:
+  - sentinel-2-l2a
+notes: >
+  Fenêtre sur le lagon nord. Un atoll entier dépasse souvent une tuile :
+  on reste sur une baie.

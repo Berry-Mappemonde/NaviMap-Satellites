@@ -83,6 +83,52 @@ def sounding_collection(
     }
 
 
+def shallow_collection(
+    rings_lonlat: list[list[tuple[float, float]]],
+    *,
+    source: str,
+    extra_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Grands plats clairs (récif / banc). Pas un obstacle isolé."""
+    mapping = mapping_by_feature("reef")
+    features = []
+    for ring in rings_lonlat:
+        props = dict(mapping.osm_tags)
+        props.update(
+            {
+                "navimap:feature": mapping.feature,
+                "navimap:s57": mapping.s57,
+                "navimap:s101": mapping.s101,
+                "navimap:not_for_navigation": True,
+                "navimap:note": (
+                    "Grande tache claire en eau peu profonde. "
+                    "Un écueil métrique isolé reste invisible à 10 m."
+                ),
+            }
+        )
+        features.append(
+            _feature({"type": "Polygon", "coordinates": [ring]}, props)
+        )
+    extra = {
+        "limitation": (
+            "Pas de détection d'obstacles isolés ni de nappes de plastique. "
+            "Indication de formes larges seulement."
+        )
+    }
+    if extra_meta:
+        extra.update(extra_meta)
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "metadata": product_metadata(
+            kind="shallow",
+            method="mndwi+bright-water+min-area",
+            source=source,
+            extra=extra,
+        ),
+    }
+
+
 def write_geojson(collection: dict[str, Any], path: str | Path) -> Path:
     dest = Path(path)
     dest.parent.mkdir(parents=True, exist_ok=True)

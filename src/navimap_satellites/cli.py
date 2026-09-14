@@ -27,6 +27,44 @@ def main(argv: list[str] | None = None) -> int:
     p_search.add_argument("aoi", type=Path, help="Fichier YAML de zone (voir aois/)")
     p_search.add_argument("--limit", type=int, default=12, help="Nombre max de scènes")
     p_search.add_argument("--json", action="store_true", dest="as_json", help="Sortie JSON")
+    p_search.add_argument(
+        "--l1c",
+        action="store_true",
+        help="Forcer la collection sentinel-2-l1c (entrée ACOLITE)",
+    )
+
+    p_download = sub.add_parser("download", help="Télécharger un SAFE L1C (compte CDSE)")
+    p_download.add_argument("aoi", type=Path)
+    p_download.add_argument("--scene", default=None, help="Identifiant de scène (sinon la moins nuageuse)")
+    p_download.add_argument("--out", type=Path, default=Path("work/scenes"))
+    p_download.add_argument("--limit", type=int, default=12)
+
+    p_acolite = sub.add_parser("acolite", help="Correction marine ACOLITE (CLI, fenêtre AOI)")
+    p_acolite.add_argument("aoi", type=Path)
+    p_acolite.add_argument("--input", type=Path, required=True, help="Dossier .SAFE ou ZIP L1C")
+    p_acolite.add_argument("--out", type=Path, default=Path("work/acolite"))
+
+    p_l2w = sub.add_parser("process-l2w", help="L2W ACOLITE → GeoJSON (côte, plats clairs, sondages si calés)")
+    p_l2w.add_argument("aoi", type=Path)
+    p_l2w.add_argument("--l2w", type=Path, required=True)
+    p_l2w.add_argument("--out", type=Path, default=Path("work/out"))
+    p_l2w.add_argument("--stumpf-m0", type=float, default=None)
+    p_l2w.add_argument("--stumpf-m1", type=float, default=None)
+    p_l2w.add_argument("--no-glint", action="store_true")
+
+    p_process = sub.add_parser(
+        "process",
+        help="Une baie : chercher L1C, télécharger, ACOLITE, GeoJSON",
+    )
+    p_process.add_argument("aoi", type=Path)
+    p_process.add_argument("--scene", default=None)
+    p_process.add_argument("--input", type=Path, default=None, help="SAFE déjà local (saute le téléchargement)")
+    p_process.add_argument("--l2w", type=Path, default=None, help="L2W déjà local (saute ACOLITE)")
+    p_process.add_argument("--out", type=Path, default=Path("work"))
+    p_process.add_argument("--stumpf-m0", type=float, default=None)
+    p_process.add_argument("--stumpf-m1", type=float, default=None)
+    p_process.add_argument("--no-glint", action="store_true")
+    p_process.add_argument("--limit", type=int, default=12)
 
     p_demo = sub.add_parser("demo", help="Pipeline complet sur une île synthétique (sans satellite)")
     p_demo.add_argument("--out", type=Path, default=Path("work/demo"), help="Dossier de sortie")
@@ -37,27 +75,48 @@ def main(argv: list[str] | None = None) -> int:
     p_auth.add_argument("--username", default=None)
     p_auth.add_argument("--password", default=None)
 
+    p_camp = sub.add_parser("campaign", help="Lister / chercher les baies d'une campagne (Berry-Mappemonde)")
+    p_camp.add_argument("path", type=Path, help="Dossier aois/berry ou manifest.yaml")
+    p_camp.add_argument("--phase", choices=["expedition", "route", "world"], default=None)
+    p_camp.add_argument("--search", action="store_true", help="Interroger le STAC pour chaque baie")
+    p_camp.add_argument("--limit", type=int, default=5)
+    p_camp.add_argument("--json", action="store_true", dest="as_json")
+
     args = parser.parse_args(argv)
-    if args.cmd == "search":
-        return _cmd_search(args)
-    if args.cmd == "demo":
-        return _cmd_demo(args)
-    if args.cmd == "schema":
-        return _cmd_schema()
-    if args.cmd == "auth-check":
-        return _cmd_auth(args)
-    parser.error(f"commande inconnue : {args.cmd}")
-    return 2
+    handlers = {
+        "search": _cmd_search,
+        "download": _cmd_download,
+        "acolite": _cmd_acolite,
+        "process-l2w": _cmd_process_l2w,
+        "process": _cmd_process,
+        "demo": _cmd_demo,
+        "schema": lambda _a: _cmd_schema(),
+        "auth-check": _cmd_auth,
+        "campaign": _cmd_campaign,
+    }
+    handler = handlers.get(args.cmd)
+    if handler is None:
+        parser.error(f"commande inconnue : {args.cmd}")
+        return 2
+    return handler(args)
+
+
+def _load_aoi_or_fail(path: Path):
+    try:
+        return load_aoi(path)
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"Fichier AOI illisible : {exc}", file=sys.stderr)
+        return None
 
 
 def _cmd_search(args: argparse.Namespace) -> int:
     from navimap_satellites.acquire.stac import search_scenes
 
-    try:
-        aoi = load_aoi(args.aoi)
-    except (OSError, ValueError, KeyError) as exc:
-        print(f"Fichier AOI illisible : {exc}", file=sys.stderr)
+    aoi = _load_aoi_or_fail(args.aoi)
+    if aoi is None:
         return 1
+    if args.l1c:
+        aoi = aoi.for_l1c()
     print(f"# {aoi.name}  [{aoi.id}]", file=sys.stderr)
     print(f"# {NOT_FOR_NAVIGATION}", file=sys.stderr)
     try:
@@ -71,18 +130,135 @@ def _cmd_search(args: argparse.Namespace) -> int:
     if not scenes:
         print("Aucune scène sous le seuil de nuages. Élargissez les dates ou max_cloud_cover.")
         return 0
+    print(_scenes_table(scenes))
     print(
-        f"{'date':<22} {'nuages%':>8} {'eau%':>7} {'tuile':<14} {'plateforme':<14} id"
+        f"\n{len(scenes)} scène(s). Téléchargement L1C : navimap-sat download {args.aoi}"
     )
-    for scene in scenes:
-        cloud = "—" if scene.cloud_cover is None else f"{scene.cloud_cover:7.2f}"
-        water = "—" if scene.water_percent is None else f"{scene.water_percent:6.1f}"
-        print(
-            f"{scene.datetime:<22} {cloud:>8} {water:>7} {scene.tile:<14} "
-            f"{scene.platform:<14} {scene.id}"
-        )
-    print(f"\n{len(scenes)} scène(s). Téléchargement : pas encore (phase suivante, compte CDSE).")
     return 0
+
+
+def _cmd_download(args: argparse.Namespace) -> int:
+    import httpx
+
+    from navimap_satellites.acquire.auth import CdseAuthError, fetch_cdse_session
+    from navimap_satellites.acquire.download import DownloadError, download_best_l1c
+    from navimap_satellites.acquire.odata import ODataError
+
+    aoi = _load_aoi_or_fail(args.aoi)
+    if aoi is None:
+        return 1
+    print(NOT_FOR_NAVIGATION, file=sys.stderr)
+    try:
+        fetch_cdse_session()
+        path = download_best_l1c(aoi, args.out, scene_id=args.scene, limit=args.limit)
+    except (ODataError, DownloadError, LookupError, CdseAuthError, OSError, httpx.HTTPError) as exc:
+        print(f"Téléchargement impossible : {exc}", file=sys.stderr)
+        return 1
+    print(path)
+    return 0
+
+
+def _cmd_acolite(args: argparse.Namespace) -> int:
+    from navimap_satellites.correct.acolite import AcoliteError, find_l2w, run_acolite, write_settings
+
+    aoi = _load_aoi_or_fail(args.aoi)
+    if aoi is None:
+        return 1
+    print(NOT_FOR_NAVIGATION, file=sys.stderr)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    try:
+        settings = write_settings(out / "acolite_settings.txt", inputfile=args.input, output=out, aoi=aoi)
+        run_acolite(settings)
+        l2w = find_l2w(out)
+    except AcoliteError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(l2w)
+    return 0
+
+
+def _cmd_process_l2w(args: argparse.Namespace) -> int:
+    from navimap_satellites.extract.l2w import L2WError, read_l2w
+    from navimap_satellites.process import vectorize_reflectance
+
+    aoi = _load_aoi_or_fail(args.aoi)
+    if aoi is None:
+        return 1
+    print(NOT_FOR_NAVIGATION, file=sys.stderr)
+    try:
+        scene = read_l2w(args.l2w, bbox=aoi.bbox)
+        paths = vectorize_reflectance(
+            scene,
+            args.out,
+            aoi=aoi,
+            apply_glint=not args.no_glint,
+            stumpf_m0=args.stumpf_m0,
+            stumpf_m1=args.stumpf_m1,
+        )
+    except (L2WError, OSError, ValueError) as exc:
+        print(f"Traitement L2W impossible : {exc}", file=sys.stderr)
+        return 1
+    for key, path in paths.items():
+        print(f"{key}: {path}")
+    if "soundings" not in paths:
+        print(
+            "Sondages non écrits : donnez --stumpf-m0 et --stumpf-m1 "
+            "(calage, plus tard ICESat-2). Sans ça le ratio n'est pas une profondeur.",
+            file=sys.stderr,
+        )
+    return 0
+
+
+def _cmd_process(args: argparse.Namespace) -> int:
+    """Enchaîne download → ACOLITE → GeoJSON, en sautant les étapes déjà fournies."""
+    if args.l2w:
+        args.l2w = Path(args.l2w)
+        return _cmd_process_l2w(args)
+    aoi = _load_aoi_or_fail(args.aoi)
+    if aoi is None:
+        return 1
+    safe = args.input
+    if safe is None:
+        import httpx
+
+        from navimap_satellites.acquire.auth import CdseAuthError, fetch_cdse_session
+        from navimap_satellites.acquire.download import DownloadError, download_best_l1c
+        from navimap_satellites.acquire.odata import ODataError
+
+        print(NOT_FOR_NAVIGATION, file=sys.stderr)
+        try:
+            fetch_cdse_session()
+            safe = download_best_l1c(
+                aoi,
+                Path(args.out) / "scenes",
+                scene_id=args.scene,
+                limit=args.limit,
+            )
+        except (ODataError, DownloadError, LookupError, CdseAuthError, OSError, httpx.HTTPError) as exc:
+            print(f"Téléchargement impossible : {exc}", file=sys.stderr)
+            return 1
+        print(f"safe: {safe}")
+    aco_out = Path(args.out) / "acolite"
+    aco = argparse.Namespace(aoi=args.aoi, input=Path(safe), out=aco_out)
+    if _cmd_acolite(aco) != 0:
+        return 1
+    from navimap_satellites.correct.acolite import find_l2w
+
+    try:
+        l2w = find_l2w(aco_out)
+    except Exception as exc:  # noqa: BLE001
+        print(f"L2W introuvable après ACOLITE : {exc}", file=sys.stderr)
+        return 1
+    l2w_args = argparse.Namespace(
+        aoi=args.aoi,
+        l2w=l2w,
+        out=Path(args.out) / "out",
+        stumpf_m0=args.stumpf_m0,
+        stumpf_m1=args.stumpf_m1,
+        no_glint=args.no_glint,
+    )
+    return _cmd_process_l2w(l2w_args)
 
 
 def _cmd_demo(args: argparse.Namespace) -> int:
@@ -115,3 +291,78 @@ def _cmd_auth(args: argparse.Namespace) -> int:
         return 1
     print(f"Jeton CDSE obtenu ({len(token)} caractères). La recherche STAC n'en a pas besoin.")
     return 0
+
+
+def _cmd_campaign(args: argparse.Namespace) -> int:
+    from navimap_satellites.acquire.stac import search_scenes
+    from navimap_satellites.campaign import load_campaign
+
+    print(NOT_FOR_NAVIGATION, file=sys.stderr)
+    try:
+        campaign = load_campaign(args.path).filter_phase(args.phase)
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"Campagne illisible : {exc}", file=sys.stderr)
+        return 1
+    if not campaign.stages:
+        print("Aucune baie pour cette phase.")
+        return 0
+    rows = []
+    for aoi, path in zip(campaign.stages, campaign.paths, strict=True):
+        row = {
+            "id": aoi.id,
+            "name": aoi.name,
+            "phase": aoi.phase,
+            "order": aoi.order,
+            "water_type": aoi.water_type,
+            "path": str(path),
+            "bbox": list(aoi.bbox),
+        }
+        if args.search:
+            try:
+                scenes = search_scenes(aoi.for_l1c(), limit=args.limit)
+                row["scenes"] = [s.as_dict() for s in scenes]
+                row["best"] = scenes[0].id if scenes else None
+            except Exception as exc:  # noqa: BLE001
+                row["error"] = str(exc)
+        rows.append(row)
+    if args.as_json:
+        print(
+            json.dumps(
+                {"id": campaign.id, "name": campaign.name, "notes": campaign.notes, "stages": rows},
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return 0
+    print(f"# {campaign.name}  [{campaign.id}]")
+    if campaign.notes:
+        print(campaign.notes)
+        print()
+    print(f"{'ordre':>5} {'phase':<12} {'id':<28} {'eau':<14} nom")
+    for aoi in campaign.stages:
+        print(
+            f"{aoi.order:5d} {aoi.phase or '—':<12} {aoi.id:<28} {aoi.water_type:<14} {aoi.name}"
+        )
+    print(
+        f"\n{len(campaign.stages)} baie(s). Une à la fois : "
+        f"navimap-sat process {campaign.paths[0]}"
+    )
+    if args.search:
+        for row in rows:
+            best = row.get("best") or row.get("error") or "aucune scène"
+            print(f"- {row['id']}: {best}")
+    return 0
+
+
+def _scenes_table(scenes) -> str:
+    lines = [
+        f"{'date':<22} {'nuages%':>8} {'eau%':>7} {'tuile':<14} {'plateforme':<14} id"
+    ]
+    for scene in scenes:
+        cloud = "—" if scene.cloud_cover is None else f"{scene.cloud_cover:7.2f}"
+        water = "—" if scene.water_percent is None else f"{scene.water_percent:6.1f}"
+        lines.append(
+            f"{scene.datetime:<22} {cloud:>8} {water:>7} {scene.tile:<14} "
+            f"{scene.platform:<14} {scene.id}"
+        )
+    return "\n".join(lines)
