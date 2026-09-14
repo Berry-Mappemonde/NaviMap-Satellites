@@ -1,0 +1,23 @@
+{
+  "note": "Déjà téléchargé et traité sur le Mac (Vague 4). Ne pas retélécharger pour rien.",
+  "collection": "sentinel-2-l1c",
+  "bbox": [-1.666, 45.655, -0.668, 46.653],
+  "use": {
+    "scene_id": "S2C_MSIL1C_20260912T110631_N0512_R137_T30TWR_20260912T130923",
+    "tile": "T30TWR",
+    "datetime": "2026-09-12T11:06:31Z",
+    "cloud_cover": 0,
+    "l2r": "~/Desktop/sentinel-pilot/acolite/S2C_MSI_2026_09_12_11_18_31_T30TWR_L2R.nc",
+    "bands_mndwi": ["rhos_561", "rhos_1612"]
+  },
+  "do_not_use": [
+    "S2C_MSIL2A_20260912T110631_N0512_R137_T30TWR_20260912T145321 (ACOLITE refuse L2A)",
+    "fichier *L1R*.nc (étape intermédiaire)",
+    "PNG rgb / rhos quasi noir (aperçu mal étiré)"
+  ],
+  "icesat2_cmr_2026-09-14": {
+    "atl24": 5,
+    "atl03": 5,
+    "sdb": "possible plus tard (v0.3), interdit d'inventer une profondeur maintenant"
+  }
+}

@@ -10,6 +10,8 @@ import os
 
 import httpx
 
+from navimap_satellites.acquire.envfile import load_cdse_env
+
 TOKEN_URL = (
     "https://identity.dataspace.copernicus.eu/auth/realms/CDSE"
     "/protocol/openid-connect/token"
@@ -28,6 +30,7 @@ def fetch_cdse_token(
     client: httpx.Client | None = None,
 ) -> str:
     """Obtient un jeton OpenID. Priorité : CDSE_ACCESS_TOKEN, sinon login/mot de passe."""
+    load_cdse_env()
     existing = os.environ.get("CDSE_ACCESS_TOKEN", "").strip()
     if existing:
         return existing
