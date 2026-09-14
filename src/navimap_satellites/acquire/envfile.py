@@ -62,7 +62,7 @@ def load_cdse_env() -> list[str]:
             if not parsed:
                 continue
             key, value = parsed
-            if key.startswith("CDSE_") or key.startswith("COPERNICUS_"):
+            if key.startswith(("CDSE_", "COPERNICUS_", "EARTHDATA_")):
                 os.environ.setdefault(key, value)
         loaded.append(str(path))
     return loaded

@@ -15,3 +15,15 @@ IHO_NOTE = (
     "Qualité : non évaluée (équivalent CATZOC U / S-101 Unassessed). "
     "Un pixel Sentinel-2 mesure 10 m : un écueil métrique isolé peut être invisible."
 )
+
+NASA_GIBS_ACK = (
+    "We acknowledge the use of imagery provided by services from NASA's "
+    "Global Imagery Browse Services (GIBS), part of NASA's Earth Science "
+    "Data and Information System (ESDIS)."
+)
+
+NASA_VISUAL_NOTE = (
+    "Les tuiles NASA GIBS / Worldview / Blue Marble sont un fond visuel. "
+    "Ce ne sont pas des réflectances exploitables (Stumpf, MNDWI), "
+    "ni une carte marine."
+)

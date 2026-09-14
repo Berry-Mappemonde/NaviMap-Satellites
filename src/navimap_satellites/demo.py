@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
 
 from navimap_satellites.aoi import AOI
+from navimap_satellites.basemap.gibs import write_preview_html
 from navimap_satellites.extract.l2w import ReflectanceScene
-from navimap_satellites.extract.water_index import mndwi, water_mask
 from navimap_satellites.process import vectorize_reflectance
-from navimap_satellites.sdb.stumpf import calibrate_stumpf, stumpf_ratio
+from navimap_satellites.sdb.control import synthetic_atl24_track
 
 DEMO_AOI = AOI(
     id="demo-island",
@@ -22,7 +23,7 @@ DEMO_AOI = AOI(
     water_type="synthetic",
 )
 
-DEMO_N = 1000.0
+DEMO_GIBS_DATE = "2025-08-15"
 
 
 def synthetic_scene(size: int = 96) -> dict[str, np.ndarray]:
@@ -53,12 +54,11 @@ def synthetic_scene(size: int = 96) -> dict[str, np.ndarray]:
 
 
 def run_demo(out_dir: str | Path, *, size: int = 96) -> dict[str, Path]:
-    """Exécute indices → trait de côte → plats clairs → SDB Stumpf."""
+    """Côte + plats + calage ATL24 synthétique + fond GIBS.
+
+    Le calage imite une trace ICESat-2 (points épars), pas la grille entière.
+    """
     raw = synthetic_scene(size)
-    index = mndwi(raw["green"], raw["swir"])
-    mask = water_mask(index)
-    ratio = stumpf_ratio(raw["blue"], raw["green"], n=DEMO_N)
-    m0, m1 = calibrate_stumpf(ratio, raw["truth_depth"], mask)
     scene = ReflectanceScene(
         blue=raw["blue"],
         green=raw["green"],
@@ -67,13 +67,26 @@ def run_demo(out_dir: str | Path, *, size: int = 96) -> dict[str, Path]:
         bbox=DEMO_AOI.bbox,
         source="synthetic-demo",
     )
-    return vectorize_reflectance(
+    points = synthetic_atl24_track(raw["truth_depth"], DEMO_AOI.bbox)
+    dest = Path(out_dir)
+    paths = vectorize_reflectance(
         scene,
-        out_dir,
+        dest,
         aoi=DEMO_AOI,
         apply_glint=True,
-        stumpf_m0=m0,
-        stumpf_m1=m1,
+        atl24_points=points,
         sounding_step=8,
         min_shallow_pixels=32,
     )
+    collections = {}
+    for key in ("coastline", "shallow", "soundings", "atl24"):
+        if key in paths:
+            collections[key] = json.loads(paths[key].read_text(encoding="utf-8"))
+    paths["preview"] = write_preview_html(
+        dest / "preview.html",
+        bbox=DEMO_AOI.bbox,
+        title=DEMO_AOI.name,
+        date=DEMO_GIBS_DATE,
+        collections=collections,
+    )
+    return paths

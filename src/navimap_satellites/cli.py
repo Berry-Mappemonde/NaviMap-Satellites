@@ -54,6 +54,12 @@ def main(argv: list[str] | None = None) -> int:
     p_l2w.add_argument("--out", type=Path, default=Path("work/out"))
     p_l2w.add_argument("--stumpf-m0", type=float, default=None)
     p_l2w.add_argument("--stumpf-m1", type=float, default=None)
+    p_l2w.add_argument(
+        "--atl24",
+        type=Path,
+        default=None,
+        help="GeoJSON de points ICESat-2 ATL24 (calage Stumpf)",
+    )
     p_l2w.add_argument("--no-glint", action="store_true")
 
     p_process = sub.add_parser(
@@ -67,6 +73,12 @@ def main(argv: list[str] | None = None) -> int:
     p_process.add_argument("--out", type=Path, default=Path("work"))
     p_process.add_argument("--stumpf-m0", type=float, default=None)
     p_process.add_argument("--stumpf-m1", type=float, default=None)
+    p_process.add_argument(
+        "--atl24",
+        type=Path,
+        default=None,
+        help="GeoJSON de points ICESat-2 ATL24 (calage Stumpf)",
+    )
     p_process.add_argument("--no-glint", action="store_true")
     p_process.add_argument("--limit", type=int, default=12)
 
@@ -98,12 +110,46 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_ice.add_argument("--aoi", type=Path, default=None)
 
+    p_atl24 = sub.add_parser(
+        "atl24",
+        help="Lister les granules ICESat-2 ATL24 (CMR, sans compte). Pas de sondages.",
+    )
+    p_atl24.add_argument("aoi", type=Path, help="Fichier YAML de zone")
+    p_atl24.add_argument("--limit", type=int, default=20)
+    p_atl24.add_argument(
+        "--dates",
+        action="store_true",
+        help="Restreindre aux dates de l'AOI (souvent trop étroit pour ICESat-2)",
+    )
+    p_atl24.add_argument("--json", action="store_true", dest="as_json")
+
+    p_basemap = sub.add_parser(
+        "basemap",
+        help="Fond NASA GIBS (photo). Pas une mesure, pas une carte marine.",
+    )
+    p_basemap.add_argument("aoi", type=Path)
+    p_basemap.add_argument("--out", type=Path, default=Path("work/preview.html"))
+    p_basemap.add_argument(
+        "--layer",
+        default="viirs",
+        help="viirs | modis | blue-marble | blue-marble-bathy",
+    )
+    p_basemap.add_argument("--date", default=None, help="YYYY-MM-DD (couches quotidiennes)")
+    p_basemap.add_argument("--coastline", type=Path, default=None)
+    p_basemap.add_argument("--shallow", type=Path, default=None)
+    p_basemap.add_argument("--soundings", type=Path, default=None)
+    p_basemap.add_argument("--atl24", type=Path, default=None)
+
     p_demo = sub.add_parser("demo", help="Pipeline complet sur une île synthétique (sans satellite)")
     p_demo.add_argument("--out", type=Path, default=Path("work/demo"), help="Dossier de sortie")
 
     sub.add_parser("schema", help="Afficher le tableau OpenSeaMap / S-57 / S-101")
+    sub.add_parser(
+        "layers",
+        help="Couches d'une carte marine vs ce que le satellite fournit",
+    )
 
-    p_auth = sub.add_parser("auth-check", help="Vérifier un compte CDSE (pas CMEMS)")
+    p_auth = sub.add_parser("auth-check", help="Vérifier CDSE et Earthdata (pas CMEMS)")
     p_auth.add_argument("--username", default=None)
     p_auth.add_argument("--password", default=None)
 
@@ -123,8 +169,11 @@ def main(argv: list[str] | None = None) -> int:
         "process": _cmd_process,
         "coastline": _cmd_coastline,
         "icesat-check": _cmd_icesat,
+        "atl24": _cmd_atl24,
+        "basemap": _cmd_basemap,
         "demo": _cmd_demo,
         "schema": lambda _a: _cmd_schema(),
+        "layers": lambda _a: _cmd_layers(),
         "auth-check": _cmd_auth,
         "campaign": _cmd_campaign,
     }
@@ -252,6 +301,15 @@ def _cmd_process_l2w(args: argparse.Namespace) -> int:
     print(NOT_FOR_NAVIGATION, file=sys.stderr)
     try:
         scene = read_l2w(args.l2w, bbox=aoi.bbox)
+        atl24_points = None
+        if getattr(args, "atl24", None):
+            from navimap_satellites.acquire.atl24 import Atl24Error, load_atl24_geojson
+
+            try:
+                atl24_points = load_atl24_geojson(args.atl24)
+            except Atl24Error as exc:
+                print(f"ATL24 illisible : {exc}", file=sys.stderr)
+                return 1
         paths = vectorize_reflectance(
             scene,
             args.out,
@@ -259,6 +317,7 @@ def _cmd_process_l2w(args: argparse.Namespace) -> int:
             apply_glint=not args.no_glint,
             stumpf_m0=args.stumpf_m0,
             stumpf_m1=args.stumpf_m1,
+            atl24_points=atl24_points,
         )
     except (L2WError, OSError, ValueError) as exc:
         print(f"Traitement L2W impossible : {exc}", file=sys.stderr)
@@ -267,8 +326,8 @@ def _cmd_process_l2w(args: argparse.Namespace) -> int:
         print(f"{key}: {path}")
     if "soundings" not in paths:
         print(
-            "Sondages non écrits : donnez --stumpf-m0 et --stumpf-m1 "
-            "(calage, plus tard ICESat-2). Sans ça le ratio n'est pas une profondeur.",
+            "Sondages non écrits : donnez --atl24 points.geojson "
+            "ou --stumpf-m0 et --stumpf-m1. Sans calage le ratio n'est pas une profondeur.",
             file=sys.stderr,
         )
     return 0
@@ -320,6 +379,7 @@ def _cmd_process(args: argparse.Namespace) -> int:
         out=Path(args.out) / "out",
         stumpf_m0=args.stumpf_m0,
         stumpf_m1=args.stumpf_m1,
+        atl24=getattr(args, "atl24", None),
         no_glint=args.no_glint,
     )
     return _cmd_process_l2w(l2w_args)
@@ -361,6 +421,99 @@ def _cmd_icesat(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_atl24(args: argparse.Namespace) -> int:
+    from navimap_satellites.acquire.atl24 import search_atl24
+    from navimap_satellites.basemap.gibs import worldview_url
+
+    aoi = _load_aoi_or_fail(args.aoi)
+    if aoi is None:
+        return 1
+    print(NOT_FOR_NAVIGATION, file=sys.stderr)
+    print("Aucun sondage n'est écrit. ATL24 cale Stumpf ; ce n'est pas la carte.", file=sys.stderr)
+    try:
+        granules = search_atl24(aoi, limit=args.limit, temporal=args.dates)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Recherche CMR impossible : {exc}", file=sys.stderr)
+        return 1
+    payload = {
+        "aoi": aoi.id,
+        "bbox": list(aoi.bbox),
+        "worldview_url": worldview_url(aoi.bbox, date=aoi.date_to),
+        "granules": [g.as_dict() for g in granules],
+        "soundings_written": False,
+    }
+    if args.as_json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print(f"# {aoi.name}  [{aoi.id}]")
+    print(f"Worldview (fond, pas une mesure) : {payload['worldview_url']}")
+    if not granules:
+        print("Aucun granule ATL24 dans ces dates. Élargissez date_from / date_to.")
+        return 0
+    print(f"{'début':<22} {'fin':<22} titre")
+    for granule in granules:
+        print(f"{granule.time_start:<22} {granule.time_end:<22} {granule.title}")
+    print(f"\n{len(granules)} granule(s). Téléchargement HDF5 : compte Earthdata, pas encore branché.")
+    return 0
+
+
+def _cmd_basemap(args: argparse.Namespace) -> int:
+    from navimap_satellites.basemap.gibs import gibs_layer, worldview_url, write_preview_html
+
+    aoi = _load_aoi_or_fail(args.aoi)
+    if aoi is None:
+        return 1
+    try:
+        gibs_layer(args.layer)
+    except KeyError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(NOT_FOR_NAVIGATION, file=sys.stderr)
+    print("GIBS = photo. Ce n'est pas une réflectance, pas une carte marine.", file=sys.stderr)
+    collections: dict = {}
+    for key, path in (
+        ("coastline", args.coastline),
+        ("shallow", args.shallow),
+        ("soundings", args.soundings),
+        ("atl24", args.atl24),
+    ):
+        if path is None:
+            continue
+        try:
+            collections[key] = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"GeoJSON illisible ({key}) : {exc}", file=sys.stderr)
+            return 1
+    date = args.date or aoi.date_to
+    dest = write_preview_html(
+        args.out,
+        bbox=aoi.bbox,
+        title=aoi.name,
+        date=date,
+        collections=collections,
+        default_layer=args.layer,
+    )
+    print(dest)
+    print(worldview_url(aoi.bbox, date=date, layer_id=args.layer if args.layer == "viirs" else "viirs"))
+    return 0
+
+
+def _cmd_layers() -> int:
+    from navimap_satellites.vectorize.chart_layers import layer_rows
+
+    print(f"{'id':<12} {'rôle':<14} {'statut':<16} {'source':<28} titre")
+    for row in layer_rows():
+        print(
+            f"{row['id']:<12} {row['role']:<14} {row['status']:<16} "
+            f"{row['source']:<28} {row['title']}"
+        )
+    print(
+        f"\n{NOT_FOR_NAVIGATION} Une carte marine n'est pas que la bathymétrie : "
+        "feux, balises, TSS et règlements restent hors optique."
+    )
+    return 0
+
+
 def _cmd_demo(args: argparse.Namespace) -> int:
     from navimap_satellites.demo import run_demo
 
@@ -374,10 +527,11 @@ def _cmd_demo(args: argparse.Namespace) -> int:
 def _cmd_schema() -> int:
     from navimap_satellites.vectorize.osm_schema import schema_rows
 
-    print(f"{'entité':<22} {'OSM':<42} {'S-57':<8} {'S-101'}")
+    print(f"{'entité':<24} {'OSM':<42} {'S-57':<8} {'S-101'}")
     for row in schema_rows():
-        print(f"{row['feature']:<22} {row['osm']:<42} {row['s57']:<8} {row['s101']}")
+        print(f"{row['feature']:<24} {row['osm']:<42} {row['s57']:<8} {row['s101']}")
     print(f"\n{NOT_FOR_NAVIGATION} Pas de fichier ENC dans cette version.")
+    print("Couches (photo, côte, calage, hors feux) : navimap-sat layers")
     return 0
 
 
@@ -396,6 +550,15 @@ def _cmd_auth(args: argparse.Namespace) -> int:
         print(str(exc), file=sys.stderr)
         return 1
     print(f"Jeton CDSE obtenu ({len(token)} caractères). La recherche STAC n'en a pas besoin.")
+    from navimap_satellites.acquire.earthdata import EarthdataAuthError, fetch_earthdata_token
+
+    try:
+        nasa = fetch_earthdata_token()
+    except EarthdataAuthError as exc:
+        print(str(exc))
+        print("Earthdata : facultatif pour GIBS et la recherche CMR ATL24.")
+        return 0
+    print(f"Jeton Earthdata obtenu ({len(nasa)} caractères). GIBS n'en a pas besoin.")
     return 0
 
 
