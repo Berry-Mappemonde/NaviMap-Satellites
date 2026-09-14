@@ -1,0 +1,5 @@
+{
+  "name": "NaviMap Satellites",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh"
+}
