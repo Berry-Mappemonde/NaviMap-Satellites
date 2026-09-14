@@ -45,6 +45,7 @@ Dans le Terminal, à l’endroit où vous voulez le dossier :
 ```bash
 git clone https://github.com/NAVIGUIDE-for-Berry-Mappemonde/NaviMap-Satellites.git
 cd NaviMap-Satellites
+git checkout cursor/v02-acolite-l2r-fdad   # v0.2 (L2R → trait de côte)
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"

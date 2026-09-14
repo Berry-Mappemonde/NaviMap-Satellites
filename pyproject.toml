@@ -50,8 +50,8 @@ raster = [
 navimap-sat = "navimap_satellites.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/NAVIGUIDE-for-Berry-Mappemonde/navimap-satellites"
-Repository = "https://github.com/NAVIGUIDE-for-Berry-Mappemonde/navimap-satellites"
+Homepage = "https://github.com/NAVIGUIDE-for-Berry-Mappemonde/NaviMap-Satellites"
+Repository = "https://github.com/NAVIGUIDE-for-Berry-Mappemonde/NaviMap-Satellites"
 
 [tool.setuptools.packages.find]
 where = ["src"]
