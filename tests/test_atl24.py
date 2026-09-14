@@ -54,6 +54,7 @@ def test_search_parses_cmr():
     def handler(request: httpx.Request) -> httpx.Response:
         assert "ATL24" in str(request.url)
         assert "8.7" in str(request.url)
+        assert "temporal" not in str(request.url)
         return httpx.Response(200, json=SAMPLE)
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
@@ -62,6 +63,19 @@ def test_search_parses_cmr():
     assert granules[0].title.startswith("ATL24_")
     assert granules[0].href.endswith(".h5")
     assert granules[0].size_mb == 12.5
+
+
+def test_search_can_apply_aoi_dates():
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        return httpx.Response(200, json=SAMPLE)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    search_atl24(_calvi(), temporal=True, client=client, url="https://cmr.test/granules.json")
+    assert "temporal" in seen[0]
+    assert "2025-06-01" in seen[0]
 
 
 def test_points_from_arrays_keeps_bathymetry_only():

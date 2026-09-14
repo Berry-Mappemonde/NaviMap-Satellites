@@ -29,8 +29,11 @@ navimap-sat process-l2w aois/calvi.yaml --l2w …L2W.nc --atl24 points.geojson
 ```
 
 `icesat-check` et `atl24` **n’écrivent aucun sondage**. Ils disent si une
-trace existe. Le calage (m0, m1) part d’un GeoJSON de photons fond, ou
-de la trace synthétique de `demo`.
+trace existe. Par défaut `atl24` ne reprend **pas** les dates Sentinel de
+l’AOI (une orbite ICESat-2 est rare). `--dates` pour forcer cette fenêtre.
+
+Le calage (m0, m1) part d’un GeoJSON de photons fond, ou de la trace
+synthétique de `demo`.
 
 GIBS : **sans compte**. CMR ATL24 : **sans compte**. Téléchargement HDF5 :
 compte [Earthdata Login](https://urs.earthdata.nasa.gov) — troisième

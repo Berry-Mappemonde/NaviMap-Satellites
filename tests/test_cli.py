@@ -72,7 +72,7 @@ def test_basemap_cli(tmp_path, capsys):
 def test_atl24_cli_mocked(monkeypatch, capsys):
     from navimap_satellites.acquire.atl24 import Atl24Granule
 
-    def fake_search(aoi, limit=20):
+    def fake_search(aoi, limit=20, temporal=False):
         return [
             Atl24Granule(
                 id="G1",

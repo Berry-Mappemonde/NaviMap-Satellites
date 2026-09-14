@@ -139,7 +139,8 @@ Sans calage, pas de sondages en mètres — seulement côte et plats clairs.
 Le calage : `--atl24 points.geojson` (photons ICESat-2) ou `--stumpf-m0` / `--stumpf-m1`.
 
 ```bash
-navimap-sat atl24 aois/calvi.yaml
+navimap-sat atl24 aois/calvi.yaml          # CMR, sans filtrer sur les dates Sentinel
+navimap-sat atl24 aois/calvi.yaml --dates  # fenêtre de l'AOI (souvent vide)
 navimap-sat process-l2w aois/calvi.yaml --l2w work/acolite/…L2W.nc --atl24 points.geojson
 ```
 

@@ -104,14 +104,20 @@ def search_atl24(
     aoi: AOI,
     *,
     limit: int = 20,
+    temporal: bool = False,
     client: httpx.Client | None = None,
     url: str = CMR_GRANULES_URL,
 ) -> list[Atl24Granule]:
+    """Par défaut sans filtre de dates : une trace ICESat-2 est rare.
+
+    Les dates de l'AOI servent à Sentinel-2. Passez temporal=True pour
+    les réutiliser (souvent zéro granule sur une petite baie).
+    """
     return search_granules(
         "ATL24",
         aoi.bbox,
-        date_from=aoi.date_from,
-        date_to=aoi.date_to,
+        date_from=aoi.date_from if temporal else None,
+        date_to=aoi.date_to if temporal else None,
         limit=limit,
         client=client,
         url=url,

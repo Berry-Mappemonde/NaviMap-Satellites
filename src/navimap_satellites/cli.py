@@ -116,6 +116,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_atl24.add_argument("aoi", type=Path, help="Fichier YAML de zone")
     p_atl24.add_argument("--limit", type=int, default=20)
+    p_atl24.add_argument(
+        "--dates",
+        action="store_true",
+        help="Restreindre aux dates de l'AOI (souvent trop étroit pour ICESat-2)",
+    )
     p_atl24.add_argument("--json", action="store_true", dest="as_json")
 
     p_basemap = sub.add_parser(
@@ -426,7 +431,7 @@ def _cmd_atl24(args: argparse.Namespace) -> int:
     print(NOT_FOR_NAVIGATION, file=sys.stderr)
     print("Aucun sondage n'est écrit. ATL24 cale Stumpf ; ce n'est pas la carte.", file=sys.stderr)
     try:
-        granules = search_atl24(aoi, limit=args.limit)
+        granules = search_atl24(aoi, limit=args.limit, temporal=args.dates)
     except Exception as exc:  # noqa: BLE001
         print(f"Recherche CMR impossible : {exc}", file=sys.stderr)
         return 1
