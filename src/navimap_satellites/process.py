@@ -1,4 +1,4 @@
-"""Chaîne v0.2 : L1C → ACOLITE → trait de côte / plats clairs / sondages."""
+"""Chaîne : L1C → ACOLITE → trait de côte / plats clairs / sondages calés."""
 
 from __future__ import annotations
 
@@ -6,14 +6,17 @@ from pathlib import Path
 
 import numpy as np
 
+from navimap_satellites.acquire.atl24 import Atl24Point
 from navimap_satellites.aoi import AOI
 from navimap_satellites.correct.glint import apply_hedley, hedley_slope
 from navimap_satellites.extract.coastline import mask_contours
 from navimap_satellites.extract.l2w import ReflectanceScene, sample_lonlat
 from navimap_satellites.extract.shallow import shallow_mask
 from navimap_satellites.extract.water_index import mndwi, water_mask
+from navimap_satellites.sdb.control import calibrate_from_atl24
 from navimap_satellites.sdb.stumpf import stumpf_depth
 from navimap_satellites.vectorize.export import (
+    atl24_collection,
     coastline_collection,
     shallow_collection,
     sounding_collection,
@@ -31,6 +34,7 @@ def vectorize_reflectance(
     apply_glint: bool = True,
     stumpf_m0: float | None = None,
     stumpf_m1: float | None = None,
+    atl24_points: list[Atl24Point] | None = None,
     sounding_step: int = 8,
     min_shallow_pixels: int = 64,
 ) -> dict[str, Path]:
@@ -62,6 +66,23 @@ def vectorize_reflectance(
         shallow_collection(shallow_rings, source=scene.source, extra_meta=extra),
         dest / "shallow.geojson",
     )
+    if atl24_points:
+        m0, m1, stats = calibrate_from_atl24(
+            blue, green, atl24_points, scene=scene, n=STUMPF_N
+        )
+        stumpf_m0, stumpf_m1 = m0, m1
+        cal_meta = dict(extra)
+        cal_meta.update(
+            {
+                "calibration": "icesat2-atl24",
+                "atl24_n": stats["n"],
+                "atl24_rmse_m": stats["rmse_m"],
+            }
+        )
+        paths["atl24"] = write_geojson(
+            atl24_collection(atl24_points, source="icesat2-atl24", extra_meta=cal_meta),
+            dest / "atl24.geojson",
+        )
     if stumpf_m0 is not None and stumpf_m1 is not None:
         depth = stumpf_depth(
             blue,
@@ -79,6 +100,7 @@ def vectorize_reflectance(
                 "stumpf_m0": stumpf_m0,
                 "stumpf_m1": stumpf_m1,
                 "calibrated": True,
+                "calibration": "icesat2-atl24" if atl24_points else "coefficients",
             }
         )
         paths["soundings"] = write_geojson(

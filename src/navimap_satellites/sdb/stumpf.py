@@ -2,9 +2,9 @@
 
 z = m0 + m1 * ln(n * R_bleu) / ln(n * R_vert)
 
-Les coefficients m0 et m1 doivent être calés sur des sondages (plus tard :
-ICESat-2 ATL24). Sans calage, le ratio est un indice relatif, pas une
-profondeur en mètres.
+Les coefficients m0 et m1 doivent être calés sur des sondages
+(ICESat-2 ATL24, voir sdb.control). Sans calage, le ratio est un
+indice relatif, pas une profondeur en mètres.
 """
 
 from __future__ import annotations

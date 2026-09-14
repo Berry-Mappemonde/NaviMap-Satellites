@@ -112,6 +112,22 @@ def pixel_to_lonlat(
     return lon, lat
 
 
+def lonlat_to_pixel(
+    lon: np.ndarray,
+    lat: np.ndarray,
+    bbox: BBox,
+    height: int,
+    width: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Lon/lat → (row, col) flottants. Inverse de pixel_to_lonlat."""
+    west, south, east, north = bbox
+    col = (np.asarray(lon, dtype=np.float64) - west) / max(east - west, 1e-12) * max(width - 1, 1)
+    row = (north - np.asarray(lat, dtype=np.float64)) / max(north - south, 1e-12) * max(
+        height - 1, 1
+    )
+    return row, col
+
+
 def contours_to_lonlat(
     contours: Sequence[np.ndarray],
     bbox: BBox,

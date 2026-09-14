@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "navimap-satellites"
-version = "0.2.0"
-description = "Atelier d'hydrographie par satellite : Sentinel-2 L1C (CDSE) + ACOLITE vers GeoJSON côtier. Ne convient pas à la navigation."
+version = "0.3.0"
+description = "Atelier d'hydrographie par satellite : Sentinel-2 + ACOLITE + calage ICESat-2 ATL24 + fond NASA GIBS. Ne convient pas à la navigation."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
@@ -19,6 +19,9 @@ keywords = [
   "hydrography",
   "openseamap",
   "coastline",
+  "nasa",
+  "icesat-2",
+  "gibs",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -48,6 +51,9 @@ raster = [
 l2w = [
   "netCDF4>=1.6",
 ]
+atl24 = [
+  "h5py>=3.10",
+]
 
 [project.scripts]
 navimap-sat = "navimap_satellites.cli:main"
@@ -63,7 +69,7 @@ where = ["src"]
 testpaths = ["tests"]
 addopts = "-q"
 markers = [
-  "network: appelle l'API STAC publique de Copernicus (peut être lent)",
+  "network: appelle une API publique (CDSE STAC ou NASA CMR)",
 ]
 
 [tool.ruff]

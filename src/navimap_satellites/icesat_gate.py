@@ -11,6 +11,8 @@ from typing import Any
 import httpx
 
 from navimap_satellites.aoi import BBox
+from navimap_satellites.basemap.gibs import worldview_url
+from navimap_satellites.quality.disclaimer import NASA_VISUAL_NOTE
 
 CMR = "https://cmr.earthdata.nasa.gov/search/granules.json"
 
@@ -54,6 +56,8 @@ def presence_report(bbox: BBox) -> dict[str, Any]:
         "atl03": atl03,
         "sdb_allowed_later": allowed,
         "soundings_written": False,
+        "worldview_url": worldview_url(bbox),
+        "gibs_note": NASA_VISUAL_NOTE,
         "message": (
             LA_ROCHELLE_CMR_NOTE
             if allowed

@@ -7,6 +7,10 @@ Deux chemins v0.2, même tampon.
 ```
 AOI YAML (une baie)
         │
+        ├─ NASA GIBS / Worldview ────── fond visuel (sans compte)
+        │     navimap-sat basemap → preview.html
+        │     JPEG : pas une mesure
+        │
         ▼
   STAC CDSE  ──────────────────────────  v0.1  (sans compte)
         │
@@ -24,7 +28,8 @@ AOI YAML (une baie)
         └─► Stumpf (bleu/vert) ──► soundings.geojson
                     ▲                    interdit sans calage
                     │
-              calage ICESat-2 ATL24  ──  v0.3
+              ICESat-2 ATL24 (CMR)  ──  v0.3  (recherche sans compte)
+              GeoJSON de photons fond ── cale m0, m1
 ```
 
 Le **L2A Sen2Cor** (BOA) n’est **pas** une entrée ACOLITE. ACOLITE attend le **L1C** (TOA).
@@ -46,6 +51,9 @@ Le **L2A Sen2Cor** (BOA) n’est **pas** une entrée ACOLITE. ACOLITE attend le 
 | Plats | `extract/shallow.py` | Grandes taches claires (min. surface) |
 | Glint | `correct/glint.py` | Hedley sur tableaux numpy |
 | SDB | `sdb/stumpf.py` | Ratio de bandes + calage linéaire |
+| Calage | `sdb/control.py`, `acquire/atl24.py` | Points ATL24 → m0, m1 |
+| Fond | `basemap/gibs.py` | Tuiles NASA GIBS + `preview.html` |
+| Couches | `vectorize/chart_layers.py` | Ce qu'une carte marine a, vs le satellite |
 | Chaîne | `process.py` | `navimap-sat process` / `process-l2w` |
 | OSM | `vectorize/osm_schema.py` | Tags OpenSeaMap et codes S-57 / S-101 |
 | Export | `vectorize/export.py` | GeoJSON + métadonnées d’incertitude |
@@ -108,13 +116,19 @@ Sen2Cor (L2A) est une correction « terre ». DSF / ACOLITE part du spectre somb
 2. `route` — autres segments, une bbox YAML de plus.
 3. `world` — autres côtes claires, jamais un traitement global sur un petit serveur.
 
-## ICESat-2
+## ICESat-2 / NASA (v0.3)
 
-`navimap-sat icesat-check` : **garde-fou**. Pas de profondeur en mètres
-tant que le calage n’est pas fait. ATL24 / OpenOceans : plus tard.
+`navimap-sat icesat-check` : **garde-fou** (compte les granules, n’écrit rien).
+`navimap-sat atl24` : liste les granules CMR.
+`navimap-sat process-l2w … --atl24 points.geojson` : cale Stumpf.
+`navimap-sat basemap` : photo GIBS, pas une mesure.
+
+Détail : [`NASA.md`](NASA.md).
 
 ## Hors scope (volontaire)
 
-Super-résolution 2,5 m, SAM-2 / SegFormer, réseaux PINN, encodeur ENC, validation S-58, calage ICESat-2. Sujets de laboratoire, pas ce livrable.
+Super-résolution 2,5 m, SAM-2 / SegFormer, réseaux PINN, encodeur ENC,
+validation S-58, téléchargement HDF5 ATL24. Sujets de laboratoire, pas
+le premier calage.
 
 Pipeline ACOLITE / CDSE / MNDWI dans **Blue-Intelligence-Map** : BI importe seulement le GeoJSON final.

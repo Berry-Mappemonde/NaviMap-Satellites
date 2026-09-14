@@ -21,10 +21,13 @@ Un petit programme Python qui, pour **une baie à la fois** :
 3. lance **ACOLITE en ligne de commande** sur la fenêtre de la baie (pas la GUI) ;
 4. relit aussi un **L2R déjà calculé** sur le Mac (`navimap-sat coastline`) ;
 5. extrait un trait de côte (MNDWI) et de **grands plats clairs** (pas un rocher isolé) ;
-6. estime une bathymétrie simple (Stumpf) **si** on a de quoi la caler ;
-7. écrit du GeoJSON avec les tags OpenSeaMap.
+6. estime une bathymétrie simple (Stumpf) **si** on la cale (ICESat-2 ATL24 ou coefficients) ;
+7. pose un fond **NASA GIBS** (photo, pas une mesure) ;
+8. écrit du GeoJSON avec les tags OpenSeaMap.
 
-La version **0.2** enchaîne ces étapes. Sans compte ni ACOLITE, `demo` et `search` suffisent.
+La version **0.3** ajoute le calage ATL24 et le fond GIBS. Une carte marine
+n’est **pas** que la bathymétrie : `navimap-sat layers`. Sans compte ni
+ACOLITE, `demo`, `search` et `basemap` suffisent.
 
 ## Ce que ce n’est pas
 
@@ -36,7 +39,8 @@ La version **0.2** enchaîne ces étapes. Sans compte ni ACOLITE, `demo` et `sea
 | Fichier ENC S-57 / S-101 | Non — le tableau de correspondance est là, pas l’encodeur |
 | Vent / houle Copernicus | Autre service (**Copernicus Marine**). Voir `docs/COMPTES_COPERNICUS.md` |
 | Le monde entier d’un clic | Non — une baie, hors ligne, sur votre Mac |
-| Profondeur officielle | Non — ICESat-2 vu par CMR, calage = v0.3 |
+| Profondeur officielle | Non — ATL24 cale Stumpf, ce n’est pas un ENC |
+| Photo NASA = carte | Non — GIBS est un fond JPEG, pas une réflectance |
 
 ## Installation (Mac)
 
@@ -66,16 +70,20 @@ source .venv/bin/activate
 navimap-sat demo
 ```
 
-Trois fichiers apparaissent dans `work/demo/` :
+Fichiers dans `work/demo/` :
 
 - `coastline.geojson` — trait de côte de l’île imaginaire ;
 - `shallow.geojson` — grandes taches d’eau claire (démo) ;
-- `soundings.geojson` — sondages ponctuels (Stumpf calé sur cette scène).
+- `atl24.geojson` — trace de calage (ICESat-2 **synthétique**) ;
+- `soundings.geojson` — sondages Stumpf calés sur cette trace ;
+- `preview.html` — fond NASA GIBS + couches (ouvrir dans un navigateur).
 
-Vous pouvez les ouvrir dans [geojson.io](https://geojson.io) ou QGIS.
+Vous pouvez ouvrir les GeoJSON dans [geojson.io](https://geojson.io) ou QGIS.
 
 ```bash
 navimap-sat schema
+navimap-sat layers
+navimap-sat basemap aois/calvi.yaml --out work/calvi.html
 ```
 
 ## Trait de côte depuis le L2R déjà sur le Bureau
@@ -127,7 +135,13 @@ Ou d’un coup (toujours **une** baie) :
 navimap-sat process aois/calvi.yaml --out work/calvi
 ```
 
-Sans calage Stumpf, pas de sondages en mètres — seulement côte et plats clairs. Les coefficients viendront plus tard (ICESat-2).
+Sans calage, pas de sondages en mètres — seulement côte et plats clairs.
+Le calage : `--atl24 points.geojson` (photons ICESat-2) ou `--stumpf-m0` / `--stumpf-m1`.
+
+```bash
+navimap-sat atl24 aois/calvi.yaml
+navimap-sat process-l2w aois/calvi.yaml --l2w work/acolite/…L2W.nc --atl24 points.geojson
+```
 
 ## Compte Copernicus — lequel ?
 
@@ -135,16 +149,17 @@ Sans calage Stumpf, pas de sondages en mètres — seulement côte et plats clai
 |---|---|---|
 | Copernicus Data Space (CDSE) | Images Sentinel-1/2 | [dataspace.copernicus.eu](https://dataspace.copernicus.eu) |
 | Copernicus Marine (CMEMS) | Vent, vagues, courant | [marine.copernicus.eu](https://marine.copernicus.eu) |
+| NASA Earthdata | ICESat-2 ATL24 (calage) ; GIBS sans login | [urs.earthdata.nasa.gov](https://urs.earthdata.nasa.gov) |
 
-Détails : [`docs/COMPTES_COPERNICUS.md`](docs/COMPTES_COPERNICUS.md). Chaîne : [`docs/PIPELINE.md`](docs/PIPELINE.md).
+Détails : [`docs/COMPTES_COPERNICUS.md`](docs/COMPTES_COPERNICUS.md), [`docs/NASA.md`](docs/NASA.md). Chaîne : [`docs/PIPELINE.md`](docs/PIPELINE.md).
 
 ## Feuille de route
 
 | Version | Objectif |
 |---|---|
 | 0.1 | Recherche STAC, algorithmes testés, démo GeoJSON, schéma OSM |
-| **0.2** (cette page) | L1C, ACOLITE CLI, L2R déjà calculé, plats clairs, campagne Berry |
-| 0.3 | Caler Stumpf sur ICESat-2 ATL24 (sans levé bateau) |
+| 0.2 | L1C, ACOLITE CLI, L2R déjà calculé, plats clairs, campagne Berry |
+| **0.3** (cette page) | Fond GIBS, CMR ATL24, calage Stumpf sur points ICESat-2 |
 | 0.4 | Sentinel-1 (radar) pour le trait de côte par mauvais temps |
 | plus tard | Export labo S-57, jamais pour un usage ECDIS |
 
@@ -159,6 +174,8 @@ NAVIMAP_LIVE=1 pytest -k live_cdse   # optionnel : vraie API Copernicus
 
 - Code : MIT (`LICENSE`).
 - Images Sentinel : programme Copernicus. Mentionner « Contains modified Copernicus Sentinel data » sur tout produit dérivé.
+- Fond GIBS : mentionner NASA ESDIS (voir `docs/NASA.md`).
+- ICESat-2 ATL24 : citer le DOI NSIDC du produit utilisé.
 - Ce logiciel n’est **pas** un service hydrographique.
 
 ---

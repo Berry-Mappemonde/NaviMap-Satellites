@@ -129,6 +129,62 @@ def shallow_collection(
     }
 
 
+def atl24_collection(
+    points: list[tuple[float, float, float] | Any],
+    *,
+    source: str,
+    extra_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Points de calage ICESat-2. Pas des sondages de carte."""
+    mapping = mapping_by_feature("calibration_sounding")
+    features = []
+    for item in points:
+        if hasattr(item, "lon"):
+            lon, lat, depth = float(item.lon), float(item.lat), float(item.depth_m)
+            confidence = getattr(item, "confidence", None)
+            granule = getattr(item, "granule_id", "")
+        else:
+            lon, lat, depth = item
+            confidence = None
+            granule = ""
+        props = dict(mapping.osm_tags)
+        props.update(
+            {
+                "depth": round(float(depth), 2),
+                "navimap:feature": mapping.feature,
+                "navimap:s57": mapping.s57,
+                "navimap:s101": mapping.s101,
+                "navimap:not_for_navigation": True,
+                "navimap:role": "calibration",
+            }
+        )
+        if confidence is not None:
+            props["confidence"] = confidence
+        if granule:
+            props["navimap:granule"] = granule
+        features.append(
+            _feature({"type": "Point", "coordinates": [float(lon), float(lat)]}, props)
+        )
+    extra = {
+        "limitation": (
+            "Points de calage le long d'une trace lidar. "
+            "Ce n'est pas un semis de carte, pas une grille de baie."
+        )
+    }
+    if extra_meta:
+        extra.update(extra_meta)
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "metadata": product_metadata(
+            kind="atl24",
+            method="icesat2-atl24",
+            source=source,
+            extra=extra,
+        ),
+    }
+
+
 def write_geojson(collection: dict[str, Any], path: str | Path) -> Path:
     dest = Path(path)
     dest.parent.mkdir(parents=True, exist_ok=True)

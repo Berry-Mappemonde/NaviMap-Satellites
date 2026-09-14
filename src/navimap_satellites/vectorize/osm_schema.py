@@ -55,6 +55,13 @@ FEATURE_MAP: tuple[OsmMapping, ...] = (
         notes="Sondage ponctuel. Tag OSM depth=* (mètres).",
     ),
     OsmMapping(
+        feature="calibration_sounding",
+        osm_tags={"seamark:type": "depth", "navimap:role": "calibration"},
+        s57="SOUNDG",
+        s101="Sounding",
+        notes="Point de calage ICESat-2 ATL24. Ce n'est pas un sondage de carte.",
+    ),
+    OsmMapping(
         feature="breakwater",
         osm_tags={"man_made": "breakwater"},
         s57="SLCONS",

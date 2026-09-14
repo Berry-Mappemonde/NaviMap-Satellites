@@ -1,6 +1,11 @@
 import numpy as np
 
-from navimap_satellites.extract.coastline import contours_to_lonlat, mask_contours, pixel_to_lonlat
+from navimap_satellites.extract.coastline import (
+    contours_to_lonlat,
+    lonlat_to_pixel,
+    mask_contours,
+    pixel_to_lonlat,
+)
 
 
 def test_square_island_has_a_ring():
@@ -19,6 +24,15 @@ def test_pixel_to_lonlat_corners():
     assert abs(lat[0] - 12.0) < 1e-9
     assert abs(lon[1] - 2.0) < 1e-9
     assert abs(lat[1] - 10.0) < 1e-9
+
+
+def test_lonlat_roundtrip():
+    bbox = (0.0, 10.0, 2.0, 12.0)
+    row_in, col_in = np.array([0.0, 4.5, 9.0]), np.array([0.0, 3.0, 9.0])
+    lon, lat = pixel_to_lonlat(row_in, col_in, bbox, 10, 10)
+    row, col = lonlat_to_pixel(lon, lat, bbox, 10, 10)
+    assert np.allclose(row, row_in)
+    assert np.allclose(col, col_in)
 
 
 def test_contours_to_lonlat_closed():

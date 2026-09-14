@@ -40,3 +40,10 @@ def test_demo_writes_geojson(tmp_path: Path):
     shallow = json.loads(paths["shallow"].read_text(encoding="utf-8"))
     assert shallow["metadata"]["not_for_navigation"] is True
     assert shallow["metadata"]["kind"] == "shallow"
+    atl24 = json.loads(paths["atl24"].read_text(encoding="utf-8"))
+    assert atl24["features"]
+    assert atl24["features"][0]["properties"]["navimap:role"] == "calibration"
+    assert atl24["metadata"]["kind"] == "atl24"
+    preview = paths["preview"].read_text(encoding="utf-8")
+    assert "gibs.earthdata.nasa.gov" in preview
+    assert sound["metadata"]["calibration"] == "icesat2-atl24"

@@ -1,6 +1,7 @@
-# Deux Copernicus, deux comptes
+# Trois comptes, trois services
 
-C’est la confusion la plus fréquente. « J’ai Copernicus » ne dit pas encore de **quel** Copernicus.
+« J’ai Copernicus » ne dit pas encore de **quel** Copernicus. Et NASA
+n’est ni l’un ni l’autre.
 
 ## 1. Copernicus Data Space Ecosystem (CDSE)
 
@@ -29,7 +30,20 @@ Créer un compte : bouton Register sur le site Data Space. Ce n’est pas le mê
 - Utile pour NAVIGUIDE et l’atlas climatologique de Blue Intelligence.
 - Identifiants typiques : `COPERNICUS_USERNAME`, `COPERNICUS_PASSWORD`.
 
-NaviMap Satellites **n’utilise pas** CMEMS en v0.1. Un compte Marine ne débloque pas les images Sentinel.
+NaviMap Satellites **n’utilise pas** CMEMS. Un compte Marine ne débloque pas les images Sentinel.
+
+## 3. NASA Earthdata Login
+
+- Site : https://urs.earthdata.nasa.gov
+- Données : ICESat-2 ATL24 (calage), tuiles GIBS (fond, **sans** ce compte).
+- Identifiants dans `.env` : `EARTHDATA_USERNAME`, `EARTHDATA_PASSWORD` ou `EARTHDATA_TOKEN`.
+
+La **recherche** ATL24 (`navimap-sat atl24`) parle au catalogue CMR public.
+GIBS / Worldview non plus n’ont pas besoin de login.
+Le mot de passe Earthdata servira au **téléchargement HDF5** (pas encore
+le chemin nominal : on cale d’abord sur un GeoJSON de points).
+
+Détail : [`NASA.md`](NASA.md).
 
 ## Comment vérifier
 
@@ -39,9 +53,10 @@ source .venv/bin/activate
 navimap-sat auth-check
 ```
 
-- Succès : le programme a obtenu un jeton Data Space. Vous pourrez télécharger plus tard.
-- Échec « compte manquant » : le fichier `.env` est vide — la recherche d’images reste possible.
+- Succès CDSE : jeton Data Space. Vous pourrez télécharger un L1C.
+- Échec « compte manquant » : le fichier `.env` est vide — la recherche STAC / CMR / GIBS reste possible.
 - Échec « CDSE a refusé » : vous avez probablement collé le login **Marine**. Créez un compte Data Space.
+- Earthdata manquant : normal pour GIBS et `atl24`. Inutile d’inventer un quatrième login.
 
 ## Téléchargement (rappel pour plus tard)
 
