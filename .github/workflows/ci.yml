@@ -22,3 +22,5 @@ jobs:
         run: pytest
       - name: CLI démo
         run: navimap-sat demo --out work/ci-demo
+      - name: CLI campagne
+        run: navimap-sat campaign aois/berry

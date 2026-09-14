@@ -16,9 +16,6 @@ Ouvrez **Terminal** (Spotlight → `Terminal`).
 cd ~
 git clone https://github.com/NAVIGUIDE-for-Berry-Mappemonde/NaviMap-Satellites.git
 cd NaviMap-Satellites
-# Tant que la PR v0.2 n'est pas fusionnée, il faut cette branche
-# (main n'a encore que la démo île imaginaire).
-git checkout cursor/v02-acolite-l2r-fdad
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -29,8 +26,7 @@ Si le dossier existe déjà (clone v0.1) :
 ```bash
 cd ~/NaviMap-Satellites
 git fetch origin
-git checkout cursor/v02-acolite-l2r-fdad
-git pull origin cursor/v02-acolite-l2r-fdad
+git pull
 source .venv/bin/activate
 pip install -e ".[dev]"
 ```

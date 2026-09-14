@@ -1,0 +1,17 @@
+# Lagon calédonien, bon terrain optique. Ne convient pas à la navigation.
+
+id: nouvelle-caledonie-lagon
+name: Lagon de Nouméa / Îlot Maître (Nouvelle-Calédonie)
+purpose: escale ultramarine candidate — grand lagon clair
+water_type: case-1-ish
+campaign: berry-mappemonde
+phase: expedition
+order: 40
+bbox: [166.39, -22.36, 166.47, -22.30]
+date_from: "2025-01-01"
+date_to: "2026-12-31"
+max_cloud_cover: 20
+collections:
+  - sentinel-2-l1c
+notes: >
+  Plats récifaux et lagon. Formes larges seulement — pas un levé d'écueils.

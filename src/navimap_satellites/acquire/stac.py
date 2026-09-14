@@ -6,12 +6,15 @@ doit être ``sentinel-2-l1c`` (le L2A ESA est refusé par ACOLITE).
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
 
 from navimap_satellites.aoi import AOI, BBox
+
+_ODATA_UUID = re.compile(r"Products\(([0-9a-fA-F-]{36})\)")
 
 STAC_SEARCH_URL = "https://stac.dataspace.copernicus.eu/v1/search"
 DEFAULT_TIMEOUT_S = 45.0
@@ -43,6 +46,7 @@ class Scene:
             "product_href": self.product_href,
             "thumbnail_href": self.thumbnail_href,
             "water_percent": self.water_percent,
+            "odata_id": self.extra.get("odata_id"),
         }
 
 
@@ -76,6 +80,24 @@ def search_scenes(
     return scenes
 
 
+def pick_best_scene(
+    aoi: AOI,
+    *,
+    limit: int = 12,
+    l1c: bool = True,
+    client: httpx.Client | None = None,
+    url: str = STAC_SEARCH_URL,
+) -> Scene:
+    """Première scène (nuages croissants), L1C par défaut pour ACOLITE."""
+    target = aoi.for_l1c() if l1c else aoi
+    scenes = search_scenes(target, limit=limit, client=client, url=url)
+    if not scenes:
+        raise LookupError(
+            "Aucune scène sous le seuil de nuages. Élargissez les dates ou max_cloud_cover."
+        )
+    return scenes[0]
+
+
 def _scene_from_feature(item: dict[str, Any]) -> Scene:
     props = item.get("properties") or {}
     assets = item.get("assets") or {}
@@ -99,5 +121,13 @@ def _scene_from_feature(item: dict[str, Any]) -> Scene:
         extra={
             "orbit": props.get("sat:relative_orbit"),
             "sun_elevation": props.get("view:sun_elevation"),
+            "odata_id": _odata_id_from_href(product.get("href")),
         },
     )
+
+
+def _odata_id_from_href(href: str | None) -> str | None:
+    if not href:
+        return None
+    match = _ODATA_UUID.search(href)
+    return match.group(1) if match else None

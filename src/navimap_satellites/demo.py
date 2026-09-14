@@ -7,14 +7,10 @@ from pathlib import Path
 import numpy as np
 
 from navimap_satellites.aoi import AOI
-from navimap_satellites.extract.coastline import contours_to_lonlat, mask_contours
+from navimap_satellites.extract.l2w import ReflectanceScene
 from navimap_satellites.extract.water_index import mndwi, water_mask
-from navimap_satellites.sdb.stumpf import calibrate_stumpf, stumpf_depth, stumpf_ratio
-from navimap_satellites.vectorize.export import (
-    coastline_collection,
-    sounding_collection,
-    write_geojson,
-)
+from navimap_satellites.process import vectorize_reflectance
+from navimap_satellites.sdb.stumpf import calibrate_stumpf, stumpf_ratio
 
 DEMO_AOI = AOI(
     id="demo-island",
@@ -57,67 +53,27 @@ def synthetic_scene(size: int = 96) -> dict[str, np.ndarray]:
 
 
 def run_demo(out_dir: str | Path, *, size: int = 96) -> dict[str, Path]:
-    """Exécute indices → trait de côte → SDB Stumpf, écrit deux GeoJSON."""
-    scene = synthetic_scene(size)
-    index = mndwi(scene["green"], scene["swir"])
+    """Exécute indices → trait de côte → plats clairs → SDB Stumpf."""
+    raw = synthetic_scene(size)
+    index = mndwi(raw["green"], raw["swir"])
     mask = water_mask(index)
-    rings = contours_to_lonlat(
-        mask_contours(mask),
-        DEMO_AOI.bbox,
-        height=size,
-        width=size,
+    ratio = stumpf_ratio(raw["blue"], raw["green"], n=DEMO_N)
+    m0, m1 = calibrate_stumpf(ratio, raw["truth_depth"], mask)
+    scene = ReflectanceScene(
+        blue=raw["blue"],
+        green=raw["green"],
+        swir=raw["swir"],
+        nir=raw["nir"],
+        bbox=DEMO_AOI.bbox,
+        source="synthetic-demo",
     )
-    ratio = stumpf_ratio(scene["blue"], scene["green"], n=DEMO_N)
-    m0, m1 = calibrate_stumpf(ratio, scene["truth_depth"], mask)
-    depth = stumpf_depth(
-        scene["blue"],
-        scene["green"],
-        m0=m0,
-        m1=m1,
-        n=DEMO_N,
-        water_mask=mask,
-        max_depth_m=15.0,
+    return vectorize_reflectance(
+        scene,
+        out_dir,
+        aoi=DEMO_AOI,
+        apply_glint=True,
+        stumpf_m0=m0,
+        stumpf_m1=m1,
+        sounding_step=8,
+        min_shallow_pixels=32,
     )
-    soundings = _sample_soundings(depth, DEMO_AOI.bbox, step=8)
-    dest = Path(out_dir)
-    coast_path = write_geojson(
-        coastline_collection(
-            rings,
-            source="synthetic-demo",
-            extra_meta={"aoi": DEMO_AOI.id, "size": size},
-        ),
-        dest / "coastline.geojson",
-    )
-    sound_path = write_geojson(
-        sounding_collection(
-            soundings,
-            source="synthetic-demo",
-            extra_meta={
-                "aoi": DEMO_AOI.id,
-                "stumpf_m0": round(m0, 4),
-                "stumpf_m1": round(m1, 4),
-                "calibrated": True,
-                "calibration": "régression sur la profondeur synthétique (démo seulement)",
-            },
-        ),
-        dest / "soundings.geojson",
-    )
-    return {"coastline": coast_path, "soundings": sound_path}
-
-
-def _sample_soundings(
-    depth: np.ndarray,
-    bbox: tuple[float, float, float, float],
-    step: int,
-) -> list[tuple[float, float, float]]:
-    from navimap_satellites.extract.coastline import pixel_to_lonlat
-
-    rows, cols = np.where(np.isfinite(depth))
-    points: list[tuple[float, float, float]] = []
-    h, w = depth.shape
-    for r, c in zip(rows, cols, strict=True):
-        if r % step or c % step:
-            continue
-        lon, lat = pixel_to_lonlat(np.array([r]), np.array([c]), bbox, h, w)
-        points.append((float(lon[0]), float(lat[0]), float(depth[r, c])))
-    return points

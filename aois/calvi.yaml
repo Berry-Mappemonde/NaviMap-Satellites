@@ -5,9 +5,12 @@ id: calvi
 name: Baie de Calvi (Corse)
 purpose: pilote eaux claires — recherche Sentinel-2, plus tard trait de côte et SDB
 water_type: case-1-ish
+campaign: berry-mappemonde
+phase: expedition
+order: 10
 bbox: [8.70, 42.52, 8.82, 42.60]  # west, south, east, north
 date_from: "2025-06-01"
-date_to: "2025-09-30"
+date_to: "2026-09-30"
 max_cloud_cover: 15
 collections:
   - sentinel-2-l1c

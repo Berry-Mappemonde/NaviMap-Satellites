@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 BBox = tuple[float, float, float, float]
+CAMPAIGN_PHASES = ("expedition", "route", "world")
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,9 @@ class AOI:
     purpose: str = ""
     notes: str = ""
     water_type: str = "unknown"
+    campaign: str = ""
+    phase: str = ""
+    order: int = 0
 
     def validate(self) -> None:
         west, south, east, north = self.bbox
@@ -36,6 +40,17 @@ class AOI:
             raise ValueError("max_cloud_cover doit être entre 0 et 100")
         if self.date_from > self.date_to:
             raise ValueError("date_from doit précéder date_to")
+        if self.phase and self.phase not in CAMPAIGN_PHASES:
+            raise ValueError(f"phase invalide : {self.phase} (expedition, route ou world)")
+
+    def for_l1c(self) -> AOI:
+        """Même zone, collection L1C — entrée requise par ACOLITE / DSF."""
+        return replace(self, collections=("sentinel-2-l1c",))
+
+    def acolite_limit(self) -> str:
+        """Bbox au format ACOLITE : south,west,north,east."""
+        west, south, east, north = self.bbox
+        return f"{south},{west},{north},{east}"
 
 
 def load_aoi(path: str | Path) -> AOI:
@@ -61,6 +76,16 @@ def aoi_from_dict(raw: dict[str, Any]) -> AOI:
         purpose=str(raw.get("purpose") or ""),
         notes=str(raw.get("notes") or "").strip(),
         water_type=str(raw.get("water_type") or "unknown"),
+        campaign=str(raw.get("campaign") or ""),
+        phase=str(raw.get("phase") or ""),
+        order=int(raw.get("order") or 0),
     )
     aoi.validate()
     return aoi
+
+
+def iter_aoi_files(directory: str | Path) -> list[Path]:
+    """YAML d'un dossier, hors manifeste de campagne."""
+    root = Path(directory)
+    skip = {"manifest.yaml", "campaign.yaml"}
+    return sorted(p for p in root.glob("*.yaml") if p.name not in skip)
