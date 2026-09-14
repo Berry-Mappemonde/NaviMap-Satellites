@@ -21,7 +21,7 @@ class AOI:
     date_from: str
     date_to: str
     max_cloud_cover: float = 20.0
-    collections: tuple[str, ...] = ("sentinel-2-l2a",)
+    collections: tuple[str, ...] = ("sentinel-2-l1c",)
     purpose: str = ""
     notes: str = ""
     water_type: str = "unknown"
@@ -49,7 +49,7 @@ def aoi_from_dict(raw: dict[str, Any]) -> AOI:
     bbox = raw.get("bbox")
     if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
         raise ValueError("bbox doit être [west, south, east, north]")
-    collections = raw.get("collections") or ["sentinel-2-l2a"]
+    collections = raw.get("collections") or ["sentinel-2-l1c"]
     aoi = AOI(
         id=str(raw["id"]),
         name=str(raw.get("name") or raw["id"]),

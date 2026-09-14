@@ -9,20 +9,34 @@ AOI YAML (une baie)
   STAC CDSE  ──────────────────────────  v0.1  (sans compte)
         │
         ▼
-  Téléchargement fenêtre Sentinel-2  ──  v0.2  (compte CDSE)
+  Téléchargement L1C (refuse MSIL2A) ─  v0.2  (déjà fait sur le Mac)
         │
         ▼
-  Correction marine (ACOLITE) + glint ─  v0.2
+  ACOLITE DSF → *L2R*.nc  ────────────  v0.2  (déjà calculé, on le relit)
         │
-        ├─► MNDWI / Otsu / contours ──► coastline.geojson     (v0.1 démo)
+        ├─► MNDWI rhos_561/rhos_1612, seuil 0 ──► coastline.geojson   (v0.2)
         │
-        └─► Stumpf (bleu/vert) ──► soundings.geojson
-                    ▲
-                    │
-              calage ICESat-2 ATL24  ──  v0.3
+        └─► Stumpf ── interdit tant que ICESat-2 n'est pas calé ──  v0.3
 ```
 
-## v0.1 — ce qui est dans le code
+## v0.2 — L2R ACOLITE → trait de côte
+
+| Module | Fichier | Rôle |
+|---|---|---|
+| Corridor | `aois/la-rochelle.yaml` | Bbox Vague 4, collection `sentinel-2-l1c` |
+| Scène déjà là | `aois/scenes_la_rochelle.json` | L1C T30TWR + chemin L2R (ne pas retélécharger) |
+| Garde L1C | `acquire/l1c.py` | Refuse `MSIL2A` |
+| `.env` Mac | `acquire/envfile.py` | Relit le `.env` BI déjà rempli |
+| Téléchargement | `acquire/download.py` | Zip L1C ; saute si le fichier existe |
+| L2R | `correct/l2r.py` | `rhos_561` / `rhos_1612`, refuse L1R |
+| Contour 0 | `extract/zero_contour.py` | Grille lon/lat, sans GDAL |
+| Tampon OSM | `vectorize/stamp.py` | `source=sentinel-pilot`, jamais de sondage |
+| Chaîne | `pipeline_coastline.py` | Une commande : `navimap-sat coastline` |
+| ICESat (porte) | `icesat_gate.py` | Compte les granules, **n’écrit pas** de profondeur |
+
+Guide Mac : `docs/MAC_V02.md`. Leçons : `docs/LECONS_L1C_ACOLITE.md`.
+
+## v0.1 — ce qui reste (démo, maths)
 
 | Module | Fichier | Rôle |
 |---|---|---|
@@ -44,6 +58,9 @@ AOI YAML (une baie)
 - Cible réaliste plus tard : indication type Order 1b / 2, eaux claires, 0–10 m, **non certifiée**.
 - Sen2Cor (correction « terre ») produit souvent des réflectances marines fausses. D’où ACOLITE en v0.2.
 
-## Ce qui est volontairement hors v0.1
+## Hors scope (volontaire)
 
-Super-résolution 2,5 m, SAM-2 / SegFormer, réseaux PINN, encodeur ENC, validation S-58. Ce sont des sujets de laboratoire, pas le premier livrable.
+- Super-résolution, SAM-2, PINN, ENC S-57/S-101
+- SDB / sondages (v0.3, après ATL24/ATL03 téléchargés)
+- Pipeline ACOLITE / CDSE / MNDWI dans **Blue-Intelligence-Map**
+  (BI importe seulement le GeoJSON final)

@@ -1,0 +1,20 @@
+# Corridor Berry — ~30 milles autour de La Rochelle.
+# Bbox Vague 4 (ne pas recalculer avec VLM / geo.py).
+# Ne convient pas à la navigation.
+
+id: la-rochelle
+name: Corridor La Rochelle (~30 M)
+purpose: pilote L1C + ACOLITE L2R déjà calculé sur le Bureau
+water_type: case-2-coastal
+bbox: [-1.666, 45.655, -0.668, 46.653]  # west, south, east, north
+date_from: "2026-06-01"
+date_to: "2026-09-30"
+max_cloud_cover: 20
+collections:
+  - sentinel-2-l1c
+notes: >
+  Centre ≈ (-1.167, 46.1541). ACOLITE exige le L1C, pas le L2A ESA.
+  Jumeau déjà sur le Mac : S2C_MSIL1C_20260912T110631_N0512_R137_T30TWR_20260912T130923
+  L2R utile : ~/Desktop/sentinel-pilot/acolite/S2C_MSI_2026_09_12_11_18_31_T30TWR_L2R.nc
+  SWIR : rhos_1612 (pas rhos_1614). Ignorer les PNG rgb rhos quasi noirs.
+  ICESat-2 ATL24/ATL03 existent (CMR) : calage v0.3, pas de sondage maintenant.

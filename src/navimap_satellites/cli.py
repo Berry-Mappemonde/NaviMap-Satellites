@@ -28,6 +28,39 @@ def main(argv: list[str] | None = None) -> int:
     p_search.add_argument("--limit", type=int, default=12, help="Nombre max de scènes")
     p_search.add_argument("--json", action="store_true", dest="as_json", help="Sortie JSON")
 
+    p_coast = sub.add_parser(
+        "coastline",
+        help="Trait de côte depuis un L2R ACOLITE (rhos_561 / rhos_1612, seuil 0)",
+    )
+    p_coast.add_argument(
+        "--l2r",
+        type=Path,
+        default=Path.home() / "Desktop" / "sentinel-pilot" / "acolite",
+        help="Fichier *L2R*.nc ou dossier qui le contient",
+    )
+    p_coast.add_argument(
+        "--aoi",
+        type=Path,
+        default=None,
+        help="YAML de zone (défaut : aois/la-rochelle.yaml à côté du paquet)",
+    )
+    p_coast.add_argument(
+        "--out",
+        type=Path,
+        default=Path.home() / "Desktop" / "sentinel-pilot" / "coastline.geojson",
+    )
+
+    p_dl = sub.add_parser("download", help="Télécharger un zip L1C (refuse MSIL2A). Inutile si déjà sur le Bureau.")
+    p_dl.add_argument("scene_id", help="Identifiant MSIL1C")
+    p_dl.add_argument("--out", type=Path, default=None, help="Dossier (défaut : ~/Desktop/sentinel-pilot)")
+    p_dl.add_argument("--dry-run", action="store_true")
+
+    p_ice = sub.add_parser(
+        "icesat-check",
+        help="Dit si ICESat-2 croise la zone. N'écrit aucune profondeur.",
+    )
+    p_ice.add_argument("--aoi", type=Path, default=None)
+
     p_demo = sub.add_parser("demo", help="Pipeline complet sur une île synthétique (sans satellite)")
     p_demo.add_argument("--out", type=Path, default=Path("work/demo"), help="Dossier de sortie")
 
@@ -40,6 +73,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.cmd == "search":
         return _cmd_search(args)
+    if args.cmd == "coastline":
+        return _cmd_coastline(args)
+    if args.cmd == "download":
+        return _cmd_download(args)
+    if args.cmd == "icesat-check":
+        return _cmd_icesat(args)
     if args.cmd == "demo":
         return _cmd_demo(args)
     if args.cmd == "schema":
@@ -81,7 +120,71 @@ def _cmd_search(args: argparse.Namespace) -> int:
             f"{scene.datetime:<22} {cloud:>8} {water:>7} {scene.tile:<14} "
             f"{scene.platform:<14} {scene.id}"
         )
-    print(f"\n{len(scenes)} scène(s). Téléchargement : pas encore (phase suivante, compte CDSE).")
+    print(
+        f"\n{len(scenes)} scène(s). ACOLITE veut du MSIL1C, pas du MSIL2A. "
+        "Si le zip L1C est déjà sur le Bureau, ne retéléchargez pas."
+    )
+    return 0
+
+
+def _default_aoi_path() -> Path:
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / "aois" / "la-rochelle.yaml"
+        if candidate.is_file():
+            return candidate
+    return Path.cwd() / "aois" / "la-rochelle.yaml"
+
+
+def _cmd_coastline(args: argparse.Namespace) -> int:
+    from navimap_satellites.correct.l2r import L2RError
+    from navimap_satellites.pipeline_coastline import coastline_from_l2r
+
+    aoi_path = args.aoi or _default_aoi_path()
+    try:
+        aoi = load_aoi(aoi_path)
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"Fichier AOI illisible : {exc}", file=sys.stderr)
+        return 1
+    print(NOT_FOR_NAVIGATION, file=sys.stderr)
+    print("Aucun sondage ne sera écrit (ICESat-2 = v0.3).", file=sys.stderr)
+    try:
+        dest = coastline_from_l2r(args.l2r, aoi, args.out)
+    except (L2RError, ValueError, OSError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(dest)
+    return 0
+
+
+def _cmd_download(args: argparse.Namespace) -> int:
+    from navimap_satellites.acquire.download import download_l1c_scene
+    from navimap_satellites.acquire.l1c import L2ARejected
+
+    try:
+        rec = download_l1c_scene(args.scene_id, args.out, dry_run=args.dry_run)
+    except L2ARejected as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    except Exception as exc:  # noqa: BLE001
+        print(f"Téléchargement impossible : {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(rec, indent=2, ensure_ascii=False))
+    return 0
+
+
+def _cmd_icesat(args: argparse.Namespace) -> int:
+    from navimap_satellites.icesat_gate import presence_report
+
+    aoi_path = args.aoi or _default_aoi_path()
+    try:
+        aoi = load_aoi(aoi_path)
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"Fichier AOI illisible : {exc}", file=sys.stderr)
+        return 1
+    report = presence_report(aoi.bbox)
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    print("Aucun fichier de sondage n'a été écrit.", file=sys.stderr)
     return 0
 
 

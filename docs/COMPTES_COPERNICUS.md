@@ -9,6 +9,11 @@ C’est la confusion la plus fréquente. « J’ai Copernicus » ne dit pas enco
 - Utile ici : trouver et plus tard télécharger une image d’une baie.
 - Identifiants dans `.env` : `CDSE_USERNAME`, `CDSE_PASSWORD`.
 
+Sur le Mac de Clément, le login CDSE est **déjà** dans
+`/Users/clement/Blue-Intelligence-Map/scripts/satellite/.env`
+(mot de passe entre quotes). NaviMap le lit tout seul.
+Ne créez pas un second fichier secret « pour voir ».
+
 La **recherche** (`navimap-sat search`) parle au catalogue STAC public :
 
 `https://stac.dataspace.copernicus.eu/v1/search`

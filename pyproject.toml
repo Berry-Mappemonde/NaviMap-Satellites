@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "navimap-satellites"
-version = "0.1.0"
+version = "0.2.0"
 description = "Atelier d'hydrographie par satellite : Sentinel-2 (CDSE) vers GeoJSON côtier. Ne convient pas à la navigation."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -37,6 +37,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
+  "netCDF4>=1.6",
+]
+l2r = [
+  "netCDF4>=1.6",
 ]
 raster = [
   "rasterio>=1.3",

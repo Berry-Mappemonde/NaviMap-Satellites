@@ -1,7 +1,7 @@
 """Recherche de scènes Sentinel via le catalogue STAC public du CDSE.
 
-La recherche ne demande pas de compte. Le téléchargement des images, lui,
-passe par l'identité Copernicus Data Space (voir acquire.auth).
+La recherche ne demande pas de compte. Pour ACOLITE, la collection AOI
+doit être ``sentinel-2-l1c`` (le L2A ESA est refusé par ACOLITE).
 """
 
 from __future__ import annotations

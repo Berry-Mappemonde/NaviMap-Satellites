@@ -21,7 +21,12 @@ Un petit programme Python qui, pour **une baie à la fois** :
 3. sait estimer une bathymétrie simple (formule de Stumpf), **si** on a de quoi la caler ;
 4. écrit du GeoJSON avec les tags OpenSeaMap (`natural=coastline`, `seamark:type=depth`, …).
 
-La version **0.1** fait déjà les étapes 1 et 4, et les étapes 2–3 sur une **île imaginaire** (pour vérifier les maths sans télécharger 800 Mo). Le téléchargement réel des images et la correction atmosphérique marine (ACOLITE) viennent ensuite.
+**v0.2** relit le **L2R ACOLITE déjà calculé** sur le Mac (La Rochelle,
+12 sept. 2026) et sort un GeoJSON `natural=coastline`. Aucun sondage.
+Blue Intelligence **montre** ce fichier (mode Science, filtre Satellite pilote).
+NaviMap **fabrique**. On n’ajoute plus de pipeline satellite dans Blue Intelligence.
+
+Guide Mac : [`docs/MAC_V02.md`](docs/MAC_V02.md). Leçons L1C : [`docs/LECONS_L1C_ACOLITE.md`](docs/LECONS_L1C_ACOLITE.md).
 
 ## Ce que ce n’est pas
 
@@ -31,14 +36,15 @@ La version **0.1** fait déjà les étapes 1 et 4, et les étapes 2–3 sur une 
 | Fichier ENC S-57 / S-101 | Non — le tableau de correspondance est là, pas l’encodeur |
 | Vent / houle Copernicus | Autre service (**Copernicus Marine**). Voir `docs/COMPTES_COPERNICUS.md` |
 | Traitement mondial sur un petit serveur | Non — une zone, hors ligne, sur votre Mac |
+| Profondeur officielle | Non — ICESat-2 vu par CMR, calage = v0.3 |
 
 ## Installation (Mac)
 
 Dans le Terminal, à l’endroit où vous voulez le dossier :
 
 ```bash
-git clone https://github.com/NAVIGUIDE-for-Berry-Mappemonde/navimap-satellites.git
-cd navimap-satellites
+git clone https://github.com/NAVIGUIDE-for-Berry-Mappemonde/NaviMap-Satellites.git
+cd NaviMap-Satellites
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -64,13 +70,31 @@ Voir le tableau des tags :
 navimap-sat schema
 ```
 
+## Trait de côte depuis le L2R déjà sur le Bureau (v0.2)
+
+Vous avez déjà le fichier ACOLITE. On ne le recalcule pas.
+
+```bash
+source .venv/bin/activate
+navimap-sat coastline \
+  --l2r ~/Desktop/sentinel-pilot/acolite \
+  --aoi aois/la-rochelle.yaml \
+  --out ~/Desktop/sentinel-pilot/coastline.geojson
+```
+
+Résultat : `natural=coastline`, `source=sentinel-pilot`, bandeau *pas pour la navigation*.
+Importez ce GeoJSON dans Blue Intelligence (mode Science). Pas de profondeur.
+
 ## Chercher de vraies images Sentinel-2
 
 La **recherche** est publique. Pas besoin de mot de passe.
 
 ```bash
-navimap-sat search aois/calvi.yaml
+navimap-sat search aois/la-rochelle.yaml
 ```
+
+La collection par défaut est **`sentinel-2-l1c`** (ACOLITE refuse le L2A).
+Calvi reste un exemple d’eau plus claire : `navimap-sat search aois/calvi.yaml`.
 
 Exemple de zone déjà écrite : baie de Calvi (Corse), eaux plutôt claires — un bon premier terrain. L’étang de Thau (`aois/etang-de-thau.yaml`) sert de contre-exemple : eau turbide, mauvaise candidate pour la bathymétrie optique.
 
@@ -101,9 +125,9 @@ Détails : [`docs/COMPTES_COPERNICUS.md`](docs/COMPTES_COPERNICUS.md). Chaîne p
 
 | Version | Objectif |
 |---|---|
-| **0.1** (cette page) | Recherche STAC, algorithmes testés, démo GeoJSON, schéma OSM / S-57 / S-101 |
-| 0.2 | Télécharger une fenêtre Sentinel-2 + ACOLITE (correction marine) |
-| 0.3 | Caler Stumpf sur ICESat-2 ATL24 (sans levé bateau) |
+| **0.1** | Recherche STAC, démo île imaginaire, schéma OSM / S-57 / S-101 |
+| **0.2** (cette page) | L1C, lecture L2R ACOLITE, MNDWI seuil 0 → GeoJSON pilote |
+| 0.3 | Caler Stumpf sur ICESat-2 ATL24 (sans inventer) |
 | 0.4 | Sentinel-1 (radar) pour le trait de côte par mauvais temps |
 | plus tard | Export labo S-57, jamais pour un usage ECDIS |
 
