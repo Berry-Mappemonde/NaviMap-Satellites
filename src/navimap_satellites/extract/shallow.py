@@ -23,7 +23,7 @@ def shallow_mask(
     if values.size < min_pixels:
         return np.zeros(wet.shape, dtype=bool)
     cut = float(np.nanquantile(values, quantile))
-    raw = wet & np.isfinite(brightness) & (brightness >= cut)
+    raw = wet & np.isfinite(brightness) & (brightness > cut)
     return _keep_large_components(raw, min_pixels)
 
 

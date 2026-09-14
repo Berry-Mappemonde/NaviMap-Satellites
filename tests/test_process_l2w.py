@@ -11,13 +11,16 @@ from navimap_satellites.process import vectorize_reflectance
 
 
 def test_shallow_drops_tiny_speckle():
-    water = np.ones((8, 8), dtype=bool)
-    blue = np.full((8, 8), 0.01)
-    green = np.full((8, 8), 0.01)
-    blue[0, 0] = 1.0
-    green[0, 0] = 1.0
-    mask = shallow_mask(water, blue, green, quantile=0.9, min_pixels=4)
-    assert not mask[0, 0]
+    water = np.ones((10, 10), dtype=bool)
+    blue = np.zeros((10, 10))
+    green = np.zeros((10, 10))
+    blue[:4, :4] = 1.0
+    green[:4, :4] = 1.0
+    blue[9, 9] = 1.0
+    green[9, 9] = 1.0
+    mask = shallow_mask(water, blue, green, quantile=0.5, min_pixels=8)
+    assert mask[1, 1]
+    assert not mask[9, 9]
 
 
 def test_sample_lonlat_uses_bbox():
