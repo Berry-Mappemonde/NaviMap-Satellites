@@ -47,7 +47,7 @@ ACOLITE, `demo`, `search` et `basemap` suffisent.
 Dans le Terminal, à l’endroit où vous voulez le dossier :
 
 ```bash
-git clone https://github.com/NAVIGUIDE-for-Berry-Mappemonde/NaviMap-Satellites.git
+git clone https://github.com/Berry-Mappemonde/NaviMap-Satellites.git
 cd NaviMap-Satellites
 python3 -m venv .venv
 source .venv/bin/activate
@@ -183,9 +183,10 @@ pytest
 NAVIMAP_LIVE=1 pytest -k live_cdse   # optionnel : vraie API Copernicus
 ```
 
-Les Cloud Agents Cursor poussent des branches `cursor/*`. Sur ce compte
-GitHub *personnel*, le bot ne peut pas ouvrir la PR : le workflow
-**Ouvrir les PR Cursor** le fait. Voir [`docs/GITHUB_PR_CURSOR.md`](docs/GITHUB_PR_CURSOR.md).
+Les Cloud Agents Cursor poussent des branches `cursor/*`. Le dépôt est
+sous l’organisation [Berry-Mappemonde](https://github.com/Berry-Mappemonde/NaviMap-Satellites).
+`ManagePullRequest` ouvre la PR ; le workflow **Ouvrir les PR Cursor**
+reste en secours. Voir [`docs/GITHUB_PR_CURSOR.md`](docs/GITHUB_PR_CURSOR.md).
 
 ## Licence et données
 
