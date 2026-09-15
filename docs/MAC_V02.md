@@ -14,7 +14,7 @@ Ouvrez **Terminal** (Spotlight → `Terminal`).
 
 ```bash
 cd ~
-git clone https://github.com/NAVIGUIDE-for-Berry-Mappemonde/NaviMap-Satellites.git
+git clone https://github.com/Berry-Mappemonde/NaviMap-Satellites.git
 cd NaviMap-Satellites
 python3 -m venv .venv
 source .venv/bin/activate

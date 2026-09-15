@@ -60,6 +60,7 @@ def test_pr_title_falls_back_to_branch_slug():
 def test_pr_body_mentions_collaborator_limitation():
     body = mod.pr_body("cursor/demo-dfe8", ["fix: exemple"])
     assert "must be a collaborator" in body
+    assert "ManagePullRequest" in body
     assert "`cursor/demo-dfe8`" in body
     assert "- fix: exemple" in body
     assert "docs/GITHUB_PR_CURSOR.md" in body

@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Ouvre une PR pour chaque branche ``cursor/*`` en avance sur ``main``.
 
-Sur ce dépôt (compte GitHub *personnel*, pas une organisation), ``cursor[bot]``
-peut pousser une branche mais GitHub refuse la création de PR :
+Le dépôt est sous l'organisation Berry-Mappemonde. ``ManagePullRequest`` est
+la voie normale. Ce script reste le secours Actions : si Cursor échoue
+(rate limit, ancien mapping vers le compte personnel, ``must be a
+collaborator``), ``GITHUB_TOKEN`` ouvre la PR.
 
     Validation Failed: {"resource":"Issue","code":"custom","message":"must be a collaborator"}
-
-Ce script tourne dans GitHub Actions avec ``GITHUB_TOKEN``, qui est autorisé à
-créer des PR une fois les permissions workflow en écriture.
 """
 
 from __future__ import annotations
@@ -70,9 +69,9 @@ def pr_body(branch: str, commit_messages: Sequence[str]) -> str:
     return (
         f"PR ouverte automatiquement pour `{branch}`.\n"
         "\n"
-        "GitHub refuse que `cursor[bot]` crée une PR sur ce dépôt **personnel** "
-        "(`must be a collaborator`). Le bot peut pousser la branche ; Actions ouvre "
-        "la PR avec `GITHUB_TOKEN`.\n"
+        "Secours Actions : si `ManagePullRequest` a échoué (rate limit, ancien "
+        "compte personnel, ou `must be a collaborator`), le bot a poussé la "
+        "branche et Actions ouvre la PR avec `GITHUB_TOKEN`.\n"
         "\n"
         "Détail : [`docs/GITHUB_PR_CURSOR.md`](docs/GITHUB_PR_CURSOR.md).\n"
         "\n"
