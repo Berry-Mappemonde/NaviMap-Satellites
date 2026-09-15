@@ -21,15 +21,20 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-Si le dossier existe déjà (clone v0.1) :
+Si le dossier existe déjà (clone v0.1) **mais `.venv` n’est pas encore là**
+(`No such file or directory` / `navimap-sat: command not found`) :
 
 ```bash
 cd ~/NaviMap-Satellites
 git fetch origin
 git pull
+bash scripts/setup-mac.sh
 source .venv/bin/activate
-pip install -e ".[dev]"
+navimap-sat --version
 ```
+
+Le prompt doit montrer `(.venv)`. `(base)` seul, c’est conda : `navimap-sat` n’y est pas.
+Sans activer : `~/NaviMap-Satellites/.venv/bin/navimap-sat --version`.
 
 Le mot de passe CDSE est déjà dans
 `/Users/clement/Blue-Intelligence-Map/scripts/satellite/.env`.
@@ -115,6 +120,8 @@ La Review reste éteinte. Ce n’est pas une carte marine.
 
 | Message | Que faire |
 |---|---|
+| `.venv/bin/activate: No such file` | Le venv n’a jamais été créé. `bash scripts/setup-mac.sh` puis `source .venv/bin/activate`. |
+| `navimap-sat: command not found` | Même cause, ou venv non activé. Prompt attendu : `(.venv)`. Pas seulement `(base)`. |
 | `aucun *L2R*.nc` | Vérifiez le dossier `~/Desktop/sentinel-pilot/acolite`. Pas le L1R. |
 | `L1R est une étape intermédiaire` | Pointez le fichier dont le nom contient `L2R`. |
 | `ACOLITE refuse … L2A` | Vous avez donné un `MSIL2A`. Utilisez le L1C / le L2R déjà là. |
