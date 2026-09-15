@@ -97,7 +97,6 @@ def skip_reason(ahead_by: int, existing_states: Sequence[str]) -> str | None:
 class GitHub:
     def __init__(self, repo: str) -> None:
         self.repo = repo
-        self.owner = repo.split("/", 1)[0]
 
     def run(self, args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
@@ -139,24 +138,24 @@ class GitHub:
                 messages.append(message)
         return ahead, messages
 
-    def pr_states(self, head: str) -> list[str]:
+    def pr_states_by_head(self) -> dict[str, list[str]]:
+        # Ne pas filtrer avec --head owner:branche : gh coupe « cursor/foo »
+        # comme propriétaire « cursor » et rate à côté des PR.
         data = self.json(
             [
                 "pr",
                 "list",
                 "--repo",
                 self.repo,
-                "--head",
-                f"{self.owner}:{head}",
                 "--state",
                 "all",
+                "--limit",
+                "200",
                 "--json",
-                "state",
+                "state,headRefName",
             ]
         )
-        if not isinstance(data, list):
-            return []
-        return [str(item["state"]) for item in data if isinstance(item, dict) and "state" in item]
+        return index_pr_states_by_head(data if isinstance(data, list) else [])
 
     def create_pr(self, *, base: str, head: str, title: str, body: str) -> str:
         result = self.run(
@@ -174,9 +173,29 @@ class GitHub:
                 "--body",
                 body,
                 "--draft",
-            ]
+            ],
+            check=False,
         )
-        return result.stdout.strip()
+        if result.returncode == 0:
+            return result.stdout.strip()
+        combined = f"{result.stdout}\n{result.stderr}"
+        if "already exists" in combined.lower():
+            return ""
+        raise subprocess.CalledProcessError(
+            result.returncode, result.args, result.stdout, result.stderr
+        )
+
+
+def index_pr_states_by_head(items: Sequence[Any]) -> dict[str, list[str]]:
+    mapping: dict[str, list[str]] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        head = item.get("headRefName")
+        state = item.get("state")
+        if isinstance(head, str) and isinstance(state, str) and head:
+            mapping.setdefault(head, []).append(state)
+    return mapping
 
 
 def detect_repo() -> str:
@@ -192,9 +211,14 @@ def detect_repo() -> str:
     return result.stdout.strip()
 
 
-def plan_branch(gh: GitHub, branch: str, base: str) -> BranchDecision:
+def plan_branch(
+    gh: GitHub,
+    branch: str,
+    base: str,
+    existing_states: Sequence[str] | None = None,
+) -> BranchDecision:
     ahead_by, messages = gh.compare(base, branch)
-    states = gh.pr_states(branch)
+    states = list(existing_states) if existing_states is not None else []
     return BranchDecision(
         name=branch,
         ahead_by=ahead_by,
@@ -213,6 +237,7 @@ def open_missing_prs(
     only: str | None = None,
 ) -> int:
     names = cursor_branch_names(gh.list_branch_names(), prefix=prefix)
+    states_by_head = gh.pr_states_by_head()
     if only:
         names = [name for name in names if name == only]
         if not names:
@@ -221,7 +246,7 @@ def open_missing_prs(
 
     opened = 0
     for name in names:
-        decision = plan_branch(gh, name, base)
+        decision = plan_branch(gh, name, base, states_by_head.get(name, []))
         if not decision.should_open:
             print(f"skip {name} — {decision.skip_reason}")
             continue
@@ -235,7 +260,11 @@ def open_missing_prs(
             title=decision.title,
             body=decision.body,
         )
-        print(url)
+        if url:
+            print(url)
+        else:
+            print(f"skip {name} — une PR existe déjà (course)")
+            continue
         opened += 1
     print(f"{opened} PR {'à ouvrir' if dry_run else 'ouverte(s)'}")
     return 0

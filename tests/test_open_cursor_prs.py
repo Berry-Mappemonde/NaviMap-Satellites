@@ -65,6 +65,20 @@ def test_pr_body_mentions_collaborator_limitation():
     assert "docs/GITHUB_PR_CURSOR.md" in body
 
 
+def test_index_pr_states_by_head_keeps_cursor_slashes():
+    mapping = mod.index_pr_states_by_head(
+        [
+            {"headRefName": "cursor/github-pr-collaborator-dfe8", "state": "OPEN"},
+            {"headRefName": "cursor/mac-venv-setup-cbb0", "state": "OPEN"},
+            {"headRefName": "cursor/nasa-gibs-atl24-7805", "state": "MERGED"},
+            {"state": "OPEN"},
+        ]
+    )
+    assert mapping["cursor/github-pr-collaborator-dfe8"] == ["OPEN"]
+    assert mapping["cursor/mac-venv-setup-cbb0"] == ["OPEN"]
+    assert mapping["cursor/nasa-gibs-atl24-7805"] == ["MERGED"]
+
+
 def test_skip_reason_messages():
     assert "avance" in (mod.skip_reason(0, []) or "")
     assert "ouverte" in (mod.skip_reason(1, ["OPEN"]) or "")

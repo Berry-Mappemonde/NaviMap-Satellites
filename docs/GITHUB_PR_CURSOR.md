@@ -73,6 +73,7 @@ Tant que le propriétaire est un compte personnel, garder le workflow Actions.
 | Symptôme | Cause probable | Quoi faire |
 |---|---|---|
 | Workflow vert, pas de PR | Branche déjà suivie, ou pas en avance sur `main` | `python3 scripts/open_cursor_prs.py --dry-run` |
+| CI `pull_request` en *action_required* | PR ouverte par `github-actions[bot]` | La CI sur `push` `cursor/**` a déjà tourné ; approuver une fois ou fusionner |
 | `GitHub Actions is not permitted to create or approve pull requests` | Case Actions décochée | Recocher + `default_workflow_permissions=write` |
 | `must be a collaborator` dans le tableau de bord Cursor | Attendu sur un dépôt personnel | Ignorer ; le workflow Actions ouvre la PR |
 | CI absente sur la nouvelle branche | Workflow pas encore sur `main` | Fusionner ce correctif, ou pousser un commit |
