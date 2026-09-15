@@ -171,6 +171,10 @@ pytest
 NAVIMAP_LIVE=1 pytest -k live_cdse   # optionnel : vraie API Copernicus
 ```
 
+Les Cloud Agents Cursor poussent des branches `cursor/*`. Sur ce compte
+GitHub *personnel*, le bot ne peut pas ouvrir la PR : le workflow
+**Ouvrir les PR Cursor** le fait. Voir [`docs/GITHUB_PR_CURSOR.md`](docs/GITHUB_PR_CURSOR.md).
+
 ## Licence et données
 
 - Code : MIT (`LICENSE`).
