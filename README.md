@@ -54,6 +54,18 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
+Si le clone est déjà là mais que `.venv` n’existe pas
+(`activate: No such file` / `navimap-sat: command not found`) :
+
+```bash
+cd ~/NaviMap-Satellites
+bash scripts/setup-mac.sh
+source .venv/bin/activate
+navimap-sat --version
+```
+
+`(base)` est conda : ça ne contient pas `navimap-sat`. Le prompt doit montrer `(.venv)`.
+
 Pour lire un NetCDF ACOLITE (L2R ou L2W) : `pip install -e ".[dev]"` suffit
 (`netCDF4` est dans l’extra `dev`). Sinon : `pip install -e ".[l2r]"` ou `".[l2w]"`.
 
