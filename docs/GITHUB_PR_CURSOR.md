@@ -7,13 +7,13 @@ Le dépôt est sous l’organisation
 L’app GitHub [Cursor](https://github.com/apps/cursor) y est installée
 (tous les dépôts, droits Pull requests + Issues).
 
-`ManagePullRequest` est la voie normale. L’ancien blocage
-(`must be a collaborator`) valait pour le compte personnel
-`NAVIGUIDE-for-Berry-Mappemonde`.
+`ManagePullRequest` peut encore répondre `must be a collaborator`.
+Le secours Actions échoue tant que l’organisation n’a pas coché
+**Allow GitHub Actions to create and approve pull requests**
+(Settings → Actions → General), avec les permissions workflow en **écriture**.
 
-Le workflow **Ouvrir les PR Cursor** reste en secours : rate limit GitHub,
-environnement Cursor encore pointé vers l’ancien propriétaire, ou échec
-ponctuel de l’app.
+Sans cette case, le workflow affiche
+`GitHub Actions is not permitted to create or approve pull requests`.
 
 ## Créer un agent ou un environnement
 
