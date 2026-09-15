@@ -98,6 +98,24 @@ navimap-sat layers
 navimap-sat basemap aois/calvi.yaml --out work/calvi.html
 ```
 
+### Suivre le pipeline sur NaviMap Charts
+
+`demo`, `process-l2w` et `process` peuvent publier leur progression et leurs
+couches au fil de leur création vers un hub NaviMap Charts :
+
+```bash
+navimap-sat demo --live-url http://localhost:5173 --live-delay 0.5
+navimap-sat process-l2w aois/calvi.yaml --l2w work/acolite/image_L2W.nc \
+  --live-url http://localhost:5173
+```
+
+L’URL peut aussi être définie une fois avec
+`NAVIMAP_LIVE_MAP_URL=http://localhost:5173`. Le client envoie des `POST` JSON
+vers `/api/events` : statut, aperçu PNG NIR/vert/bleu, puis chaque GeoJSON dès
+son écriture. `--live-delay` (0 par défaut) espace les événements, surtout pour
+rendre la démo visible. Cette sortie est *best effort* : un hub absent ou en
+panne n’interrompt jamais le calcul ni l’écriture des fichiers.
+
 ## Trait de côte depuis le L2R déjà sur le Bureau
 
 Vous avez déjà le fichier ACOLITE. On ne le recalcule pas.

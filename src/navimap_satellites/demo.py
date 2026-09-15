@@ -10,6 +10,7 @@ import numpy as np
 from navimap_satellites.aoi import AOI
 from navimap_satellites.basemap.gibs import write_preview_html
 from navimap_satellites.extract.l2w import ReflectanceScene
+from navimap_satellites.live import Publisher
 from navimap_satellites.process import vectorize_reflectance
 from navimap_satellites.sdb.control import synthetic_atl24_track
 
@@ -53,7 +54,12 @@ def synthetic_scene(size: int = 96) -> dict[str, np.ndarray]:
     }
 
 
-def run_demo(out_dir: str | Path, *, size: int = 96) -> dict[str, Path]:
+def run_demo(
+    out_dir: str | Path,
+    *,
+    size: int = 96,
+    publisher: Publisher | None = None,
+) -> dict[str, Path]:
     """Côte + plats + calage ATL24 synthétique + fond GIBS.
 
     Le calage imite une trace ICESat-2 (points épars), pas la grille entière.
@@ -77,6 +83,7 @@ def run_demo(out_dir: str | Path, *, size: int = 96) -> dict[str, Path]:
         atl24_points=points,
         sounding_step=8,
         min_shallow_pixels=32,
+        publisher=publisher,
     )
     collections = {}
     for key in ("coastline", "shallow", "soundings", "atl24"):
