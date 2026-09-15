@@ -12,6 +12,20 @@ from navimap_satellites.aoi import load_aoi
 from navimap_satellites.quality.disclaimer import NOT_FOR_NAVIGATION
 
 
+def _add_live_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--live-url",
+        default=None,
+        help="Hub NaviMap Charts (défaut : NAVIMAP_LIVE_MAP_URL)",
+    )
+    parser.add_argument(
+        "--live-delay",
+        type=float,
+        default=0.0,
+        help="Pause en secondes entre événements live (utile pour demo)",
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="navimap-sat",
@@ -61,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
         help="GeoJSON de points ICESat-2 ATL24 (calage Stumpf)",
     )
     p_l2w.add_argument("--no-glint", action="store_true")
+    _add_live_options(p_l2w)
 
     p_process = sub.add_parser(
         "process",
@@ -81,6 +96,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_process.add_argument("--no-glint", action="store_true")
     p_process.add_argument("--limit", type=int, default=12)
+    _add_live_options(p_process)
 
     p_coast = sub.add_parser(
         "coastline",
@@ -142,6 +158,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p_demo = sub.add_parser("demo", help="Pipeline complet sur une île synthétique (sans satellite)")
     p_demo.add_argument("--out", type=Path, default=Path("work/demo"), help="Dossier de sortie")
+    _add_live_options(p_demo)
 
     sub.add_parser("schema", help="Afficher le tableau OpenSeaMap / S-57 / S-101")
     sub.add_parser(
@@ -293,11 +310,20 @@ def _cmd_acolite(args: argparse.Namespace) -> int:
 
 def _cmd_process_l2w(args: argparse.Namespace) -> int:
     from navimap_satellites.extract.l2w import L2WError, read_l2w
+    from navimap_satellites.live import make_publisher
     from navimap_satellites.process import vectorize_reflectance
 
     aoi = _load_aoi_or_fail(args.aoi)
     if aoi is None:
         return 1
+    publisher = (
+        args._live_publisher
+        if hasattr(args, "_live_publisher")
+        else make_publisher(
+            getattr(args, "live_url", None),
+            delay=getattr(args, "live_delay", 0.0),
+        )
+    )
     print(NOT_FOR_NAVIGATION, file=sys.stderr)
     try:
         scene = read_l2w(args.l2w, bbox=aoi.bbox)
@@ -318,6 +344,7 @@ def _cmd_process_l2w(args: argparse.Namespace) -> int:
             stumpf_m0=args.stumpf_m0,
             stumpf_m1=args.stumpf_m1,
             atl24_points=atl24_points,
+            publisher=publisher,
         )
     except (L2WError, OSError, ValueError) as exc:
         print(f"Traitement L2W impossible : {exc}", file=sys.stderr)
@@ -335,6 +362,13 @@ def _cmd_process_l2w(args: argparse.Namespace) -> int:
 
 def _cmd_process(args: argparse.Namespace) -> int:
     """Enchaîne download → ACOLITE → GeoJSON, en sautant les étapes déjà fournies."""
+    from navimap_satellites.live import make_publisher, status_payload
+
+    publisher = make_publisher(
+        getattr(args, "live_url", None),
+        delay=getattr(args, "live_delay", 0.0),
+    )
+    args._live_publisher = publisher
     if args.l2w:
         args.l2w = Path(args.l2w)
         return _cmd_process_l2w(args)
@@ -351,6 +385,14 @@ def _cmd_process(args: argparse.Namespace) -> int:
 
         print(NOT_FOR_NAVIGATION, file=sys.stderr)
         try:
+            _publish_live(
+                publisher,
+                status_payload(
+                    "download",
+                    "Téléchargement de la scène Sentinel-2 L1C",
+                    0.1,
+                ),
+            )
             fetch_cdse_session()
             safe = download_best_l1c(
                 aoi,
@@ -364,6 +406,14 @@ def _cmd_process(args: argparse.Namespace) -> int:
         print(f"safe: {safe}")
     aco_out = Path(args.out) / "acolite"
     aco = argparse.Namespace(aoi=args.aoi, input=Path(safe), out=aco_out)
+    _publish_live(
+        publisher,
+        status_payload(
+            "acolite",
+            "Correction atmosphérique et marine ACOLITE",
+            0.35,
+        ),
+    )
     if _cmd_acolite(aco) != 0:
         return 1
     from navimap_satellites.correct.acolite import find_l2w
@@ -381,6 +431,7 @@ def _cmd_process(args: argparse.Namespace) -> int:
         stumpf_m1=args.stumpf_m1,
         atl24=getattr(args, "atl24", None),
         no_glint=args.no_glint,
+        _live_publisher=publisher,
     )
     return _cmd_process_l2w(l2w_args)
 
@@ -516,12 +567,26 @@ def _cmd_layers() -> int:
 
 def _cmd_demo(args: argparse.Namespace) -> int:
     from navimap_satellites.demo import run_demo
+    from navimap_satellites.live import make_publisher
 
     print(NOT_FOR_NAVIGATION, file=sys.stderr)
-    paths = run_demo(args.out)
+    publisher = make_publisher(
+        getattr(args, "live_url", None),
+        delay=getattr(args, "live_delay", 0.0),
+    )
+    paths = run_demo(args.out, publisher=publisher)
     for key, path in paths.items():
         print(f"{key}: {path}")
     return 0
+
+
+def _publish_live(publisher, payload: dict) -> None:
+    if publisher is None:
+        return
+    try:
+        publisher.publish(payload)
+    except Exception:  # noqa: BLE001 - le hub live est optionnel
+        pass
 
 
 def _cmd_schema() -> int:
