@@ -23,6 +23,15 @@ from typing import Any
 DEFAULT_PREFIX = "cursor/"
 DEFAULT_BASE = "main"
 BLOCKING_PR_STATES = frozenset({"OPEN", "MERGED", "CLOSED"})
+PR_PERMISSION_MARKERS = (
+    "not permitted to create or approve pull requests",
+    "must be a collaborator",
+)
+
+
+def is_pr_permission_blocked(text: str) -> bool:
+    lowered = text.lower()
+    return any(marker in lowered for marker in PR_PERMISSION_MARKERS)
 
 
 @dataclass(frozen=True)
@@ -253,12 +262,24 @@ def open_missing_prs(
         if dry_run:
             opened += 1
             continue
-        url = gh.create_pr(
-            base=base,
-            head=name,
-            title=decision.title,
-            body=decision.body,
-        )
+        try:
+            url = gh.create_pr(
+                base=base,
+                head=name,
+                title=decision.title,
+                body=decision.body,
+            )
+        except subprocess.CalledProcessError as exc:
+            combined = f"{exc.stdout or ''}\n{exc.stderr or ''}"
+            if is_pr_permission_blocked(combined):
+                print(
+                    f"skip {name} — GitHub refuse que Actions crée la PR "
+                    "(Settings → Actions → General : cocher "
+                    "Allow GitHub Actions to create and approve pull requests).",
+                    file=sys.stderr,
+                )
+                continue
+            raise
         if url:
             print(url)
         else:

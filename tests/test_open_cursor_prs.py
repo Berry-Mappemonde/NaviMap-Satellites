@@ -57,6 +57,16 @@ def test_pr_title_falls_back_to_branch_slug():
     assert mod.pr_title([], "cursor/mac-venv-setup-cbb0") == "chore: mac venv setup cbb0"
 
 
+def test_is_pr_permission_blocked_detects_org_policy():
+    assert mod.is_pr_permission_blocked(
+        "GraphQL: GitHub Actions is not permitted to create or approve pull requests"
+    )
+    assert mod.is_pr_permission_blocked(
+        'Validation Failed: {"message":"must be a collaborator"}'
+    )
+    assert not mod.is_pr_permission_blocked("HTTP 502 Bad Gateway")
+
+
 def test_pr_body_mentions_collaborator_limitation():
     body = mod.pr_body("cursor/demo-dfe8", ["fix: exemple"])
     assert "must be a collaborator" in body
